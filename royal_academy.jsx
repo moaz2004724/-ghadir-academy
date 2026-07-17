@@ -224,16 +224,19 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
   });
 
   const cycles = [];
-  let lastCycleEndDate = null;
   const todayStr = getLocalDateString(new Date());
 
   for (let c = 1; c <= P; c++) {
     const pay = sortedSubPays[c - 1];
     let startDateStr = toLocalDateStr(pay.date);
     
-    if (lastCycleEndDate) {
-      if (startDateStr < lastCycleEndDate) {
-        startDateStr = lastCycleEndDate;
+    // Determine if there is a next cycle that starts after this one.
+    // If so, we limit this cycle's sessions to end before the next one starts.
+    let limitDateStr = null;
+    if (c < P) {
+      const nextPayDate = toLocalDateStr(sortedSubPays[c].date);
+      if (nextPayDate > startDateStr) {
+        limitDateStr = nextPayDate;
       }
     }
 
@@ -242,22 +245,21 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
     // Parse the start date string safely
     const parts = startDateStr.split("-");
     let current = new Date(parts[0], parts[1] - 1, parts[2]);
-    if (lastCycleEndDate && startDateStr === lastCycleEndDate) {
-      current.setDate(current.getDate() + 1);
-    }
     current.setHours(0, 0, 0, 0);
 
     let safety = 0;
     while (cycleDates.length < 13 && safety < 5000) {
       safety++;
       const dateStr = getLocalDateString(current);
+      if (limitDateStr && dateStr >= limitDateStr) {
+        break;
+      }
       if (isGroupTrainingDay(current, dateStr)) {
         cycleDates.push(dateStr);
       }
       current.setDate(current.getDate() + 1);
     }
 
-    lastCycleEndDate = cycleDates[cycleDates.length - 1];
     cycles.push({
       cycleIndex: c,
       sessions: cycleDates
