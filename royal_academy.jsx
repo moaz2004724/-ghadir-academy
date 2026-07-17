@@ -3160,15 +3160,25 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
 /* ══════════════════════════════════════════════════════════
    INVOICE MODAL — A4 Arabic Invoice: Logo, QR, Credentials, PDF
 ══════════════════════════════════════════════════════════ */
-const ACADEMY_WEBSITE = "https://royal-academy-system.vercel.app/";
+const ACADEMY_WEBSITE = "https://royal-club.vercel.app/";
 
 function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
   const invoiceRef = useRef(null);
 
-  // Collect all payments for the same player in the same month
-  const relatedPayments = allPayments.filter(
-    p => p.playerId === payment.playerId && p.month === payment.month
-  );
+  // Collect all payments for the same player in the same batch/transaction
+  const relatedPayments = allPayments.filter(p => {
+    if (p.playerId !== payment.playerId) return false;
+    
+    // Group by batch prefix if both have dash-separated IDs (e.g. pay12345-subscription)
+    const pHasDash = p.id && p.id.includes('-');
+    const payHasDash = payment.id && payment.id.includes('-');
+    if (pHasDash && payHasDash) {
+      return p.id.split('-')[0] === payment.id.split('-')[0];
+    }
+    
+    // Fallback for older or non-batched payments: group by exact date
+    return toLocalDateStr(p.date) === toLocalDateStr(payment.date);
+  });
 
   const player = players.find(p => p.id === payment.playerId);
   const parent = parents ? parents.find(par => par.id === player?.parentId) : null;
@@ -3534,6 +3544,7 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
     const coach  = coaches.find(c => c.id === form.coachId);
     
     const hasSubscription = form.types.includes("subscription");
+    const batchTimestamp = Date.now();
 
     const newPayments = form.types.map(type => {
       let itemDiscount = 0;
@@ -3544,7 +3555,7 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
       }
 
       return {
-        id: `pay${Date.now()}-${type}`,
+        id: `pay${batchTimestamp}-${type}`,
         playerId: form.playerId,
         playerName: player?.name || "",
         coachId: form.coachId,
