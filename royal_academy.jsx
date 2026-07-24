@@ -2868,7 +2868,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
       freezeRanges: JSON.stringify(ranges)
     };
 
-    fetch("/api/players", {
+    fetch(`${API_URL}/api/players`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updatedPlayer)
