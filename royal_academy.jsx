@@ -242,6 +242,14 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
 
     const cycleDates = [];
     
+    // Parse freezeRanges
+    let ranges = [];
+    try {
+      ranges = player.freezeRanges ? JSON.parse(player.freezeRanges) : [];
+    } catch (e) {
+      ranges = [];
+    }
+
     // Parse the start date string safely
     const parts = startDateStr.split("-");
     let current = new Date(parts[0], parts[1] - 1, parts[2]);
@@ -254,6 +262,26 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
       if (limitDateStr && dateStr >= limitDateStr) {
         break;
       }
+
+      // Check if dateStr is in a completed freeze range
+      const inCompletedFreeze = ranges.some(r => r.start && r.end && dateStr >= r.start && dateStr <= r.end);
+      if (inCompletedFreeze) {
+        // Skip this date entirely, as if the training day didn't happen for this player
+        current.setDate(current.getDate() + 1);
+        continue;
+      }
+
+      // Check if dateStr is in an active freeze range
+      const inActiveFreeze = ranges.some(r => r.start && !r.end && dateStr >= r.start);
+      if (inActiveFreeze) {
+        // The player is currently frozen from this point on.
+        // We push placeholders for all remaining sessions.
+        while (cycleDates.length < 13) {
+          cycleDates.push({ date: null, status: "مجمد" });
+        }
+        break;
+      }
+
       if (isGroupTrainingDay(current, dateStr)) {
         cycleDates.push(dateStr);
       }
@@ -270,21 +298,33 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
   let activeCycleIndex = P - 1;
   for (let i = 0; i < P; i++) {
     const sessions = cycles[i].sessions;
-    const lastSession = sessions[sessions.length - 1] || "";
+    const lastSessionVal = sessions[sessions.length - 1];
+    const lastSession = typeof lastSessionVal === "string" ? lastSessionVal : (lastSessionVal?.date || "");
     if (lastSession && lastSession >= todayStr) {
       activeCycleIndex = i;
       break;
     }
   }
   const currentCycle = cycles[activeCycleIndex];
-  const lastSessionDate = currentCycle ? (currentCycle.sessions[currentCycle.sessions.length - 1] || "") : "";
+  const lastSessionVal = currentCycle ? currentCycle.sessions[currentCycle.sessions.length - 1] : null;
+  const lastSessionDate = typeof lastSessionVal === "string" ? lastSessionVal : (lastSessionVal?.date || "");
   
   // A cycle is expired if its last session is already in the past (strictly < todayStr)
   const isExpired = lastSessionDate ? lastSessionDate < todayStr : false;
   
   // Let's populate cycleSessions details for the active cycle
   const cycleSessions = [];
-  currentCycle.sessions.forEach(dateStr => {
+  currentCycle.sessions.forEach(sessionItem => {
+    if (sessionItem && typeof sessionItem === "object") {
+      cycleSessions.push({
+        date: null,
+        isFuture: false,
+        status: "مجمد"
+      });
+      return;
+    }
+
+    const dateStr = sessionItem;
     const isFuture = dateStr > todayStr;
     let status = "حاضر";
     if (!isFuture) {
@@ -694,6 +734,28 @@ const AnimIcon = ({ type, size = 20, color = "#60A5FA" }) => {
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="10" stroke={color} strokeWidth="1.8" />
         <polyline points="12 6 12 12 16 14" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
+    freeze: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round">
+        <style>{`
+          @keyframes spin-frz { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          .spin-frz { animation: spin-frz 12s linear infinite; transform-origin: 12px 12px; }
+        `}</style>
+        <g className="spin-frz">
+          <line x1="12" y1="2" x2="12" y2="22" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+          <line x1="4.93" y1="19.07" x2="19.07" y2="4.93" />
+          <path d="M12 5l-2-2m2 2l2-2" />
+          <path d="M12 19l-2 2m2-2l2 2" />
+          <path d="M5 12l-2-2m2 2l-2 2" />
+          <path d="M19 12l2-2m-2 2l2 2" />
+          <path d="M7.07 7.07l-2.83 0m2.83 0l0 -2.83" />
+          <path d="M16.93 16.93l2.83 0m-2.83 0l0 2.83" />
+          <path d="M7.07 16.93l-2.83 0m2.83 0l0 2.83" />
+          <path d="M16.93 7.07l2.83 0m-2.83 0l0 -2.83" />
+        </g>
       </svg>
     ),
     eye_off: (
@@ -2483,7 +2545,7 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
                         <span style={{ fontSize: 11, fontWeight: 700, color: p.score > 80 ? "#10B981" : p.score > 60 ? "#F59E0B" : "#EF4444" }}>{p.score}</span>
                       </div>
                     </td>
-                    <td style={{ padding: "11px 12px" }}><Chip text={p.status} color={p.status === "نشط" ? "#10B981" : "#EF4444"}/></td>
+                    <td style={{ padding: "11px 12px" }}><Chip text={p.status} color={p.status === "نشط" ? "#10B981" : p.status === "مجمد" ? "#3B82F6" : "#EF4444"}/></td>
                   </tr>
                 ))}
                 {gPlayers.length === 0 && (
@@ -2777,6 +2839,52 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
   const [form, setForm] = useState(emptyP);
   const filtered = players.filter(p => p.name.includes(search) || (groups.find(g => g.id === p.groupId)?.name || "").includes(search));
 
+  const handleToggleFreeze = (p) => {
+    const todayStr = getLocalDateString(new Date());
+    let updatedStatus = p.status;
+    let ranges = [];
+    try {
+      ranges = p.freezeRanges ? JSON.parse(p.freezeRanges) : [];
+    } catch (e) {
+      ranges = [];
+    }
+
+    if (p.status === "مجمد") {
+      updatedStatus = "نشط";
+      ranges = ranges.map(r => {
+        if (!r.end) {
+          return { ...r, end: todayStr };
+        }
+        return r;
+      });
+    } else {
+      updatedStatus = "مجمد";
+      ranges.push({ start: todayStr, end: null });
+    }
+
+    const updatedPlayer = {
+      ...p,
+      status: updatedStatus,
+      freezeRanges: JSON.stringify(ranges)
+    };
+
+    fetch("/api/players", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedPlayer)
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to update freeze status");
+      return res.json();
+    })
+    .then(data => {
+      setPlayers(prev => prev.map(x => x.id === p.id ? { ...x, status: updatedStatus, freezeRanges: JSON.stringify(ranges) } : x));
+    })
+    .catch(err => {
+      alert("حدث خطأ أثناء تعديل حالة تجميد اللاعب");
+    });
+  };
+
   if (sel) {
     const p   = players.find(x => x.id === sel);
     if (!p) { 
@@ -2833,6 +2941,29 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
             <Btn style={{ width: "100%", marginTop: 14 }} onClick={() => { setForm({ ...p, email: par?.email || "", password: par?.password || "" }); setModal("edit"); }}>
               <AnimIcon type="edit" size={14} color="#fff" /> تعديل
             </Btn>
+            <button
+              onClick={() => handleToggleFreeze(p)}
+              style={{
+                width: "100%",
+                marginTop: 8,
+                background: p.status === "مجمد" ? "linear-gradient(135deg, #10B981, #059669)" : "linear-gradient(135deg, #3B82F6, #1D4ED8)",
+                border: "none",
+                color: "#fff",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                fontFamily: "'Cairo', sans-serif"
+              }}
+            >
+              <AnimIcon type="freeze" size={14} color="#fff" />
+              {p.status === "مجمد" ? "إلغاء تجميد الاشتراك" : "تجميد الاشتراك"}
+            </button>
           </Card>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <Card t={t} style={{ padding: 22 }}>
@@ -2918,7 +3049,12 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
                       let textColor = t.textDim;
                       let icon = <AnimIcon type="circle" size={14} color={textColor} />;
                       
-                      if (!s.isFuture) {
+                      if (s.status === "مجمد") {
+                        bgColor = "rgba(96,165,250,0.08)";
+                        borderCol = "rgba(96,165,250,0.2)";
+                        textColor = "#3B82F6";
+                        icon = <AnimIcon type="freeze" size={14} color="#3B82F6" />;
+                      } else if (!s.isFuture) {
                         if (s.status === "حاضر") {
                           bgColor = "rgba(16,185,129,0.08)";
                           borderCol = "rgba(16,185,129,0.2)";
@@ -2941,7 +3077,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
                         <div key={idx} style={{ background: bgColor, border: `1px solid ${borderCol}`, padding: "10px 6px", borderRadius: 14, textAlign: "center", display: "flex", flexDirection: "column", gap: 4, alignItems: "center", boxShadow: "0 2px 6px rgba(0,0,0,0.01)" }}>
                           <div style={{ fontSize: 10, color: idx === 12 ? "#10B981" : t.textFaint, fontWeight: idx === 12 ? 800 : 700 }}>{idx === 12 ? "حصة إضافية مجانية" : `حصة ${idx + 1}`}</div>
                           <div style={{ fontSize: 14 }}>{icon}</div>
-                          <div style={{ fontSize: 9, fontWeight: 800, color: textColor }}>{formatArabicDate(s.date)}</div>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: textColor }}>{s.status === "مجمد" ? "مجمد" : formatArabicDate(s.date)}</div>
                         </div>
                       );
                     })}
@@ -3033,7 +3169,14 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
                   <td style={{ padding: "11px 14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                       <Avatar name={p.name} size={30} color={g?.color || "#2563EB"}/>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{p.name}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
+                        {p.name}
+                        {p.status === "مجمد" && (
+                          <span title="الاشتراك مجمد" style={{ display: "inline-flex", alignItems: "center" }}>
+                            <AnimIcon type="freeze" size={11} color="#3B82F6" />
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td style={{ padding: "11px 14px" }}><Chip text={g?.name || "—"} color={g?.color || "#2563EB"}/></td>
@@ -3047,7 +3190,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
                       <span style={{ fontSize: 12, fontWeight: 700, color: "#10B981" }}>{subDetails.attendedCount} / {subDetails.cycleSessions.length}</span>
                     )}
                   </td>
-                  <td style={{ padding: "11px 14px" }}><Chip text={p.status} color={p.status === "نشط" ? "#10B981" : "#EF4444"}/></td>
+                  <td style={{ padding: "11px 14px" }}><Chip text={p.status} color={p.status === "نشط" ? "#10B981" : p.status === "مجمد" ? "#3B82F6" : "#EF4444"}/></td>
                   <td style={{ padding: "11px 14px", fontSize: 13, fontWeight: 800, color: p.score > 80 ? "#10B981" : p.score > 60 ? "#F59E0B" : "#EF4444" }}>{p.score}</td>
                   <td style={{ padding: "11px 14px" }}>
                     <button onClick={e => { e.stopPropagation(); setPlayers(ps => ps.filter(x => x.id !== p.id)); }}
@@ -4383,7 +4526,7 @@ function AdminAttendance({ groups, players, coaches, attendance, setAttendance, 
         const defaultRecs = {};
         players.filter(p => p.groupId === selGroup).forEach(p => {
           const subDetails = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
-          defaultRecs[p.id] = (subDetails.isUnpaid || subDetails.isExpired) ? "غائب" : "حاضر";
+          defaultRecs[p.id] = (subDetails.isUnpaid || subDetails.isExpired || p.status === "مجمد") ? "غائب" : "حاضر";
         });
         setRecords(defaultRecs);
       }
@@ -4776,7 +4919,14 @@ function CoachHome({ coach, group, groups, myPlayers, attendance, evals, trainin
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <Avatar name={p.name} size={30} color="#06B6D4"/>
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: t.text }}>{p.name}</div>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
+                          {p.name}
+                          {p.status === "مجمد" && (
+                            <span title="الاشتراك مجمد" style={{ display: "inline-flex", alignItems: "center" }}>
+                              <AnimIcon type="freeze" size={12} color="#3B82F6" />
+                            </span>
+                          )}
+                        </div>
                         <div style={{ fontSize: 10, color: t.textDim }}>{p.position} · <span style={{ color: p.attendancePct > 90 ? "#10B981" : "#FF7C00", fontWeight: 700 }}>{p.attendancePct}% حضور</span></div>
                       </div>
                     </div>
@@ -5045,7 +5195,12 @@ function CoachPlayers({ myPlayers, group, evals, t, trainings, attendance, payme
                       let textColor = t.textDim;
                       let icon = <AnimIcon type="circle" size={14} color={textColor} />;
                       
-                      if (!s.isFuture) {
+                      if (s.status === "مجمد") {
+                        bgColor = "rgba(96,165,250,0.08)";
+                        borderCol = "rgba(96,165,250,0.2)";
+                        textColor = "#3B82F6";
+                        icon = <AnimIcon type="freeze" size={14} color="#3B82F6" />;
+                      } else if (!s.isFuture) {
                         if (s.status === "حاضر") {
                           bgColor = "rgba(16,185,129,0.08)";
                           borderCol = "rgba(16,185,129,0.2)";
@@ -5068,7 +5223,7 @@ function CoachPlayers({ myPlayers, group, evals, t, trainings, attendance, payme
                         <div key={idx} style={{ background: bgColor, border: `1px solid ${borderCol}`, padding: "10px 6px", borderRadius: 14, textAlign: "center", display: "flex", flexDirection: "column", gap: 4, alignItems: "center", boxShadow: "0 2px 6px rgba(0,0,0,0.01)" }}>
                           <div style={{ fontSize: 10, color: idx === 12 ? "#10B981" : t.textFaint, fontWeight: idx === 12 ? 800 : 700 }}>{idx === 12 ? "حصة إضافية مجانية" : `حصة ${idx + 1}`}</div>
                           <div style={{ fontSize: 14 }}>{icon}</div>
-                          <div style={{ fontSize: 9, fontWeight: 800, color: textColor }}>{formatArabicDate(s.date)}</div>
+                          <div style={{ fontSize: 9, fontWeight: 800, color: textColor }}>{s.status === "مجمد" ? "مجمد" : formatArabicDate(s.date)}</div>
                         </div>
                       );
                     })}
@@ -5127,7 +5282,7 @@ function CoachAttendance({ coachId, group, myPlayers, attendance, setAttendance,
       const defaultRecs = {};
       myPlayers.forEach(p => {
         const subDetails = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
-        defaultRecs[p.id] = (subDetails.isUnpaid || subDetails.isExpired) ? "غائب" : "حاضر";
+        defaultRecs[p.id] = (subDetails.isUnpaid || subDetails.isExpired || p.status === "مجمد") ? "غائب" : "حاضر";
       });
       setRecords(defaultRecs);
     }
@@ -5175,17 +5330,28 @@ function CoachAttendance({ coachId, group, myPlayers, attendance, setAttendance,
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Avatar name={p.name} size={34} color="#06B6D4"/>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{p.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: t.text, display: "flex", alignItems: "center", gap: 6 }}>
+                    {p.name}
+                    {p.status === "مجمد" && (
+                      <span title="الاشتراك مجمد" style={{ display: "inline-flex", alignItems: "center" }}>
+                        <AnimIcon type="freeze" size={12} color="#3B82F6" />
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: 11, color: t.textDim }}>{p.position} · حضور موسمي: <span style={{ color: p.attendancePct > 90 ? "#10B981" : p.attendancePct > 75 ? "#F59E0B" : "#EF4444" }}>{p.attendancePct}%</span></div>
                 </div>
               </div>
-              {subDetails.isUnpaid ? (
+              {p.status === "مجمد" ? (
+                <span style={{ fontSize: 11, color: "#3B82F6", fontWeight: 800, background: "rgba(59,130,246,0.1)", padding: "6px 12px", borderRadius: 8 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="freeze" size={11} color="#3B82F6" /> مجمد</span> (الاشتراك مجمد حالياً)
+                </span>
+              ) : subDetails.isUnpaid ? (
                 <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 800, background: "rgba(239,68,68,0.1)", padding: "6px 12px", borderRadius: 8 }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="alert" size={11} color="#EF4444" /> غير مسدد</span> (الاشتراك غير نشط)
                 </span>
               ) : subDetails.isExpired ? (
                 <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 800, background: "rgba(239,68,68,0.1)", padding: "6px 12px", borderRadius: 8 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="alert" size={11} color="#F59E0B" /> منتهي</span> الاشتراك ({subDetails.attendedCount}/12)
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="alert" size={11} color="#F59E0B" /> منتهي</span> الاشتراك ({subDetails.attendedCount}/{subDetails.cycleSessions.length})
                 </span>
               ) : (
                 <div style={{ display: "flex", gap: 7 }}>
@@ -5470,10 +5636,28 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
                   <Chip text={child.position || "مهاجم"} color="#FF7C00"/>
                   <Chip text={childGroup?.name || "بدون فريق"} color="#2563EB"/>
                   <Chip text={`مدرب: ${childCoach?.name || "طاقم التدريب"}`} color="#10B981"/>
-                  <Chip text={child.status} color={child.status === "نشط" ? "#10B981" : "#EF4444"}/>
+                  <Chip text={child.status} color={child.status === "نشط" ? "#10B981" : child.status === "مجمد" ? "#3B82F6" : "#EF4444"}/>
                   {child.nationalId && <Chip text={`الهوية: ${child.nationalId}`} color="#6366F1" />}
                   {child.bus && <Chip text={`الباص: ${child.bus}`} color="#EC4899" />}
                 </div>
+                {child.status === "مجمد" && (
+                  <div style={{
+                    background: "rgba(59,130,246,0.08)",
+                    border: "1px solid rgba(59,130,246,0.2)",
+                    borderRadius: 12,
+                    padding: "8px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    color: "#3B82F6",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    marginTop: 10
+                  }}>
+                    <AnimIcon type="freeze" size={14} color="#3B82F6" />
+                    <span>الاشتراك مجمد حالياً - لن يتم جدولة الحصص المتبقية حتى يتم إلغاء التجميد.</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -5619,7 +5803,12 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
                   let textColor = t.textDim;
                   let statusIcon = <AnimIcon type="circle" size={14} color={textColor} />;
                   
-                  if (!s.isFuture) {
+                  if (s.status === "مجمد") {
+                    bgColor = "rgba(96,165,250,0.06)";
+                    borderCol = "rgba(96,165,250,0.15)";
+                    textColor = "#3B82F6";
+                    statusIcon = <AnimIcon type="freeze" size={14} color="#3B82F6" />;
+                  } else if (!s.isFuture) {
                     if (s.status === "حاضر") {
                       bgColor = "rgba(16,185,129,0.06)";
                       borderCol = "rgba(16,185,129,0.15)";
@@ -5652,7 +5841,7 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
                     }}>
                       <div style={{ fontSize: 10, color: idx === 12 ? "#10B981" : t.textFaint, fontWeight: idx === 12 ? 800 : 700 }}>{idx === 12 ? "حصة إضافية مجانية" : `حصة ${idx + 1}`}</div>
                       <div style={{ fontSize: 15 }}>{statusIcon}</div>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: textColor }}>{formatArabicDate(s.date)}</div>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: textColor }}>{s.status === "مجمد" ? "مجمد" : formatArabicDate(s.date)}</div>
                     </div>
                   );
                 })}

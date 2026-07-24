@@ -71,6 +71,7 @@ model Player {
   joinDate      DateTime @default(now())
   bus           String?
   nationalId    String?
+  freezeRanges  String?
   
   // Stats
   score         Int      @default(80)

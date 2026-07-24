@@ -229,6 +229,7 @@ app.post('/api/players', async (req, res) => {
           joinDate: p.joinDate ? new Date(p.joinDate) : undefined,
           bus: p.bus,
           nationalId: p.nationalId ? p.nationalId.trim() : null,
+          freezeRanges: p.freezeRanges,
           group: { connect: { id: p.groupId } },
           parent: { connect: { id: resolvedParentId } }
         }
@@ -245,6 +246,7 @@ app.post('/api/players', async (req, res) => {
           joinDate: p.joinDate ? new Date(p.joinDate) : undefined,
           bus: p.bus,
           nationalId: p.nationalId ? p.nationalId.trim() : null,
+          freezeRanges: p.freezeRanges,
           group: { connect: { id: p.groupId } },
           parent: { connect: { id: resolvedParentId } }
         }
