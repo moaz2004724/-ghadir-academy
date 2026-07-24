@@ -2834,13 +2834,21 @@ function AdminCoaches({ coaches, setCoaches, groups, players, payments, t }) {
 function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t, trainings, attendance, payments }) {
   const [sel, setSel]   = useState(null);
   const [modal, setModal] = useState(false);
+  const [freezeModal, setFreezeModal] = useState(null);
   const [search, setSearch] = useState("");
   const emptyP = { name: "", age: "", groupId: groups[0]?.id || "", phone: "", position: "مهاجم", status: "نشط", score: 80, speed: 75, stamina: 75, technique: 75, teamwork: 75, goals: 0, assists: 0, attendancePct: 90, weight: "", height: "", parentId: "__new__", email: "", password: "", bus: "" };
   const [form, setForm] = useState(emptyP);
   const filtered = players.filter(p => p.name.includes(search) || (groups.find(g => g.id === p.groupId)?.name || "").includes(search));
 
   const handleToggleFreeze = (p) => {
-    const todayStr = getLocalDateString(new Date());
+    setFreezeModal({
+      player: p,
+      mode: p.status === "مجمد" ? "unfreeze" : "freeze",
+      date: getLocalDateString(new Date())
+    });
+  };
+
+  const submitToggleFreeze = (p, mode, selectedDate) => {
     let updatedStatus = p.status;
     let ranges = [];
     try {
@@ -2849,17 +2857,17 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
       ranges = [];
     }
 
-    if (p.status === "مجمد") {
+    if (mode === "unfreeze") {
       updatedStatus = "نشط";
       ranges = ranges.map(r => {
         if (!r.end) {
-          return { ...r, end: todayStr };
+          return { ...r, end: selectedDate };
         }
         return r;
       });
     } else {
       updatedStatus = "مجمد";
-      ranges.push({ start: todayStr, end: null });
+      ranges.push({ start: selectedDate, end: null });
     }
 
     const updatedPlayer = {
@@ -2879,6 +2887,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
     })
     .then(data => {
       setPlayers(prev => prev.map(x => x.id === p.id ? { ...x, status: updatedStatus, freezeRanges: JSON.stringify(ranges) } : x));
+      setFreezeModal(null);
     })
     .catch(err => {
       alert("حدث خطأ أثناء تعديل حالة تجميد اللاعب");
@@ -3292,6 +3301,43 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
               setModal(null); 
             }} style={{ flex: 1 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="check" size={14} color="currentColor" /> إضافة وتوليد بيانات الدخول</span></Btn>
             <Btn variant="secondary" onClick={() => setModal(null)}>إلغاء</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {freezeModal && (
+        <Modal
+          title={freezeModal.mode === "freeze" ? "تجميد اشتراك اللاعب" : "إلغاء تجميد اشتراك اللاعب"}
+          onClose={() => setFreezeModal(null)}
+          t={t}
+        >
+          <div style={{ padding: "10px 0" }}>
+            <Input
+              label={freezeModal.mode === "freeze" ? "تاريخ بدء التجميد" : "تاريخ فك التجميد (تاريخ العودة)"}
+              type="date"
+              value={freezeModal.date}
+              onChange={v => setFreezeModal(prev => ({ ...prev, date: v }))}
+              t={t}
+            />
+            <div style={{ fontSize: 11, color: t.textDim, marginTop: 10, lineHeight: 1.6 }}>
+              {freezeModal.mode === "freeze" 
+                ? "سيتم تجميد حساب الحصص والتواريخ للاعب بدءاً من هذا التاريخ المحدد."
+                : "سيتم استئناف جدولة الحصص المتبقية تلقائياً بدءاً من هذا التاريخ المحدد فصاعداً."
+              }
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            <Btn
+              variant={freezeModal.mode === "freeze" ? "danger" : "success"}
+              onClick={() => submitToggleFreeze(freezeModal.player, freezeModal.mode, freezeModal.date)}
+              style={{ flex: 1 }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <AnimIcon type="check" size={14} color="currentColor" />
+                {freezeModal.mode === "freeze" ? "تجميد الاشتراك" : "تأكيد فك التجميد"}
+              </span>
+            </Btn>
+            <Btn variant="secondary" onClick={() => setFreezeModal(null)}>إلغاء</Btn>
           </div>
         </Modal>
       )}
