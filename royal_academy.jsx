@@ -3138,6 +3138,43 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
             </div>
           </Modal>
         )}
+
+        {freezeModal && (
+          <Modal
+            title={freezeModal.mode === "freeze" ? "تجميد اشتراك اللاعب" : "إلغاء تجميد اشتراك اللاعب"}
+            onClose={() => setFreezeModal(null)}
+            t={t}
+          >
+            <div style={{ padding: "10px 0" }}>
+              <Input
+                label={freezeModal.mode === "freeze" ? "تاريخ بدء التجميد" : "تاريخ فك التجميد (تاريخ العودة)"}
+                type="date"
+                value={freezeModal.date}
+                onChange={v => setFreezeModal(prev => ({ ...prev, date: v }))}
+                t={t}
+              />
+              <div style={{ fontSize: 11, color: t.textDim, marginTop: 10, lineHeight: 1.6 }}>
+                {freezeModal.mode === "freeze" 
+                  ? "سيتم تجميد حساب الحصص والتواريخ للاعب بدءاً من هذا التاريخ المحدد."
+                  : "سيتم استئناف جدولة الحصص المتبقية تلقائياً بدءاً من هذا التاريخ المحدد فصاعداً."
+                }
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <Btn
+                variant={freezeModal.mode === "freeze" ? "danger" : "success"}
+                onClick={() => submitToggleFreeze(freezeModal.player, freezeModal.mode, freezeModal.date)}
+                style={{ flex: 1 }}
+              >
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <AnimIcon type="check" size={14} color="currentColor" />
+                  {freezeModal.mode === "freeze" ? "تجميد الاشتراك" : "تأكيد فك التجميد"}
+                </span>
+              </Btn>
+              <Btn variant="secondary" onClick={() => setFreezeModal(null)}>إلغاء</Btn>
+            </div>
+          </Modal>
+        )}
       </div>
     );
   }
