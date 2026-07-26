@@ -3064,7 +3064,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
   const [form, setForm] = useState(emptyP);
   const filtered = players.filter(p => p.name.includes(search) || (groups.find(g => g.id === p.groupId)?.name || "").includes(search));
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedPlayerId) {
       setSel(selectedPlayerId);
     } else {
