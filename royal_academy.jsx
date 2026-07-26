@@ -543,7 +543,7 @@ const AnimIcon = ({ type, size = 20, color = "#60A5FA" }) => {
     ),
     whatsapp: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path d="M12.004 2C6.48 2 2 6.48 2 12c0 1.907.534 3.738 1.55 5.334L2.03 21.97a.75.75 0 0 0 .944.944l4.636-1.52A9.957 9.957 0 0 0 12.004 22c5.52 0 10-4.48 10-10s-4.48-10-10-10zm.04 18.25c-1.748 0-3.41-.46-4.866-1.33a.75.75 0 0 0-.687-.044l-2.92.956.956-2.92a.75.75 0 0 0-.044-.687 8.204 8.204 0 0 1-1.33-4.866c0-4.549 3.702-8.25 8.25-8.25 4.549 0 8.25 3.702 8.25 8.25s-3.701 8.25-8.25 8.25zm4.496-5.748c-.246-.123-1.455-.718-1.68-.8-.225-.082-.39-.123-.553.123-.163.246-.632.8-.775.963-.143.163-.286.184-.532.06a6.721 6.721 0 0 1-1.977-1.22 7.42 7.42 0 0 1-1.368-1.703c-.143-.245-.015-.378.109-.5.111-.11.246-.287.369-.43.123-.143.164-.246.246-.41.082-.164.04-.307-.02-.43-.06-.123-.554-1.333-.759-1.826-.2-.48-.4-.41-.55-.41h-.472c-.163 0-.43.06-.655.307-.225.246-.86.84-.86 2.05s.88 2.378.983 2.521c.1.144 1.733 2.646 4.197 3.709.586.254 1.044.405 1.4.52.59.187 1.127.16 1.55.097.472-.072 1.455-.595 1.66-1.17.205-.574.205-1.066.143-1.17-.062-.102-.226-.164-.472-.287z" fill="currentColor"/>
+        <path d="M12.004 2C6.48 2 2 6.48 2 12c0 1.907.534 3.738 1.55 5.334L2.03 21.97a.75.75 0 0 0 .944.944l4.636-1.52A9.957 9.957 0 0 0 12.004 22c5.52 0 10-4.48 10-10s-4.48-10-10-10zm.04 18.25c-1.748 0-3.41-.46-4.866-1.33a.75.75 0 0 0-.687-.044l-2.92.956.956-2.92a.75.75 0 0 0-.044-.687 8.204 8.204 0 0 1-1.33-4.866c0-4.549 3.702-8.25 8.25-8.25 4.549 0 8.25 3.702 8.25 8.25s-3.701 8.25-8.25 8.25zm4.496-5.748c-.246-.123-1.455-.718-1.68-.8-.225-.082-.39-.123-.553.123-.163.246-.632.8-.775.963-.143.163-.286.184-.532.06a6.721 6.721 0 0 1-1.977-1.22 7.42 7.42 0 0 1-1.368-1.703c-.143-.245-.015-.378.109-.5.111-.11.246-.287.369-.43.123-.143.164-.246.246-.41.082-.164.04-.307-.02-.43-.06-.123-.554-1.333-.759-1.826-.2-.48-.4-.41-.55-.41h-.472c-.163 0-.43.06-.655.307-.225.246-.86.84-.86 2.05s.88 2.378.983 2.521c.1.144 1.733 2.646 4.197 3.709.586.254 1.044.405 1.4.52.59.187 1.127.16 1.55.097.472-.072 1.455-.595 1.66-1.17.205-.574.205-1.066.143-1.17-.062-.102-.226-.164-.472-.287z" fill={color}/>
       </svg>
     ),
     prices: (
@@ -2525,8 +2525,9 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                     reminderType = "expired";
                   }
                   
+                  const phone = p.phone || parent?.phone || "";
                   const textMsg = getReminderMessage(p, reminderType);
-                  const waLink = parent?.phone ? getWhatsAppLink(parent.phone, textMsg) : "";
+                  const waLink = phone ? getWhatsAppLink(phone, textMsg) : "";
                   
                   return (
                     <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: `1px solid ${t.border}`, borderRadius: 12, background: t.inputBg, transition: "transform 0.2s" }} className="rh">
@@ -2540,7 +2541,7 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                       
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         {/* WhatsApp Send Button */}
-                        {parent?.phone && (
+                        {phone && (
                           <a 
                             href={waLink}
                             target="_blank"
@@ -6885,7 +6886,7 @@ function Messaging({ messages, setMessages, meId, meName, coaches, parents, t, r
                       boxShadow: "0 2px 8px rgba(0,0,0,.05)",
                       border: isMe ? "none" : `1px solid ${t.border}`
                     }}>
-                      <div style={{ fontSize: 13, lineHeight: 1.6, wordBreak: "break-word" }}>{m.text}</div>
+                      <div style={{ fontSize: 13, lineHeight: 1.6, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{m.text}</div>
                       
                       {m.files?.length > 0 && (
                         <div style={{ marginTop: 8, borderTop: `1px solid ${isMe ? "rgba(255,255,255,.2)" : t.border}`, paddingTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
