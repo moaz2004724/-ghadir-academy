@@ -541,6 +541,11 @@ const AnimIcon = ({ type, size = 20, color = "#60A5FA" }) => {
         </g>
       </svg>
     ),
+    whatsapp: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M12.004 2C6.48 2 2 6.48 2 12c0 1.907.534 3.738 1.55 5.334L2.03 21.97a.75.75 0 0 0 .944.944l4.636-1.52A9.957 9.957 0 0 0 12.004 22c5.52 0 10-4.48 10-10s-4.48-10-10-10zm.04 18.25c-1.748 0-3.41-.46-4.866-1.33a.75.75 0 0 0-.687-.044l-2.92.956.956-2.92a.75.75 0 0 0-.044-.687 8.204 8.204 0 0 1-1.33-4.866c0-4.549 3.702-8.25 8.25-8.25 4.549 0 8.25 3.702 8.25 8.25s-3.701 8.25-8.25 8.25zm4.496-5.748c-.246-.123-1.455-.718-1.68-.8-.225-.082-.39-.123-.553.123-.163.246-.632.8-.775.963-.143.163-.286.184-.532.06a6.721 6.721 0 0 1-1.977-1.22 7.42 7.42 0 0 1-1.368-1.703c-.143-.245-.015-.378.109-.5.111-.11.246-.287.369-.43.123-.143.164-.246.246-.41.082-.164.04-.307-.02-.43-.06-.123-.554-1.333-.759-1.826-.2-.48-.4-.41-.55-.41h-.472c-.163 0-.43.06-.655.307-.225.246-.86.84-.86 2.05s.88 2.378.983 2.521c.1.144 1.733 2.646 4.197 3.709.586.254 1.044.405 1.4.52.59.187 1.127.16 1.55.097.472-.072 1.455-.595 1.66-1.17.205-.574.205-1.066.143-1.17-.062-.102-.226-.164-.472-.287z" fill="currentColor"/>
+      </svg>
+    ),
     prices: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <style>{`
@@ -1902,7 +1907,7 @@ function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, p
   ];
   return (
     <Shell title="لوحة الإدارة" subtitle="أكاديمية رويالز الرياضية" color="#2563EB" icon="dashboard" tabs={tabs} activeTab={tab} setActiveTab={setTab} onLogout={onLogout} badge="مدير عام" user={user} t={t} syncStatus={syncStatus}>
-      {tab === "overview"  && <AdminOverview players={players} coaches={coaches} groups={groups} payments={payments} attendance={attendance} trainings={trainings} t={t} />}
+      {tab === "overview"  && <AdminOverview players={players} coaches={coaches} groups={groups} payments={payments} attendance={attendance} trainings={trainings} t={t} parents={parents} messages={messages} setMessages={setMessages} />}
       {tab === "teams"     && <AdminTeams groups={groups} setGroups={setGroups} coaches={coaches} players={players} t={t} />}
       {tab === "attendance" && <AdminAttendance groups={groups} players={players} coaches={coaches} attendance={attendance} setAttendance={setAttendance} coachesAttendance={coachesAttendance} setCoachesAttendance={setCoachesAttendance} t={t} payments={payments} trainings={trainings} />}
       {tab === "coaches"   && <AdminCoaches coaches={coaches} setCoaches={setCoaches} groups={groups} players={players} payments={payments} t={t} />}
@@ -1917,9 +1922,75 @@ function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, p
 }
 
 /* ── Admin Overview ─────────────────────────────────── */
-function AdminOverview({ players, coaches, groups, payments, attendance = [], trainings = [], t }) {
+function AdminOverview({ players, coaches, groups, payments, attendance = [], trainings = [], t, parents = [], messages = [], setMessages }) {
   const [activeChart, setActiveChart] = useState("finance");
   const [toastMsg, setToastMsg] = useState(null);
+  const [watchlistTab, setWatchlistTab] = useState("unpaid_expired");
+  const [platformMsgModal, setPlatformMsgModal] = useState(null);
+
+  const getReminderMessage = (p, type) => {
+    const sub = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
+    const completedCount = sub.cycleSessions.filter(s => !s.isFuture).length;
+    const startDate = sub.cycleSessions[0]?.date ? formatArabicDate(sub.cycleSessions[0].date) : "غير محدد";
+    const endDate = sub.cycleSessions[sub.cycleSessions.length - 1]?.date ? formatArabicDate(sub.cycleSessions[sub.cycleSessions.length - 1].date) : "غير محدد";
+    const groupName = groups.find(g => g.id === p.groupId)?.name || "بدون مجموعة";
+    
+    if (type === "nearing_expiry") {
+      return `السلام عليكم ورحمة الله وبركاته،\n\nنحيطكم علماً بأن اشتراك اللاعب البطل *(${p.name})* شارف على الانتهاء.\n\n*تفاصيل الدورة التدريبية الحالية:*\n• المجموعة: *${groupName}*\n• عدد الحصص المنفذة: *${completedCount}* من أصل *12* حصة.\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة التقريبي: *${endDate}*\n\nيرجى سداد اشتراك الدورة الجديدة لضمان استمرارية تدريب ابنكم البطل دون انقطاع. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية رويالز الرياضية.`;
+    } else {
+      const statusLabel = sub.isUnpaid ? "غير مسدد" : `منتهي (${completedCount}/12)`;
+      return `السلام عليكم ورحمة الله وبركاته،\n\nنود تذكيركم بلطف بضرورة سداد اشتراك اللاعب البطل *(${p.name})* في أكاديمية رويالز الرياضية.\n\n*تفاصيل الدورة التدريبية الحالية:*\n• المجموعة: *${groupName}*\n• حالة الاشتراك: *${statusLabel}*\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة التقريبي: *${endDate}*\n\nيرجى سداد الرسوم المستحقة لتفعيل اشتراك اللاعب. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية رويالز الرياضية.`;
+    }
+  };
+
+  const getWhatsAppLink = (phone, msg) => {
+    if (!phone) return "";
+    let cleanPhone = phone.trim().replace(/\D/g, "");
+    if (cleanPhone.startsWith("05")) {
+      cleanPhone = "966" + cleanPhone.substring(1);
+    } else if (cleanPhone.startsWith("5")) {
+      cleanPhone = "966" + cleanPhone;
+    } else if (!cleanPhone.startsWith("966") && cleanPhone.length === 9) {
+      cleanPhone = "966" + cleanPhone;
+    }
+    return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+  };
+
+  const handleSendPlatformMessage = (targetParentId, targetParentName, msgText) => {
+    const newMsg = {
+      id: `msg${Date.now()}-admin`,
+      from: "admin",
+      fromName: "الإدارة",
+      to: targetParentId,
+      toName: targetParentName,
+      text: msgText,
+      date: getLocalDateString(new Date()),
+      read: false
+    };
+
+    if (API_URL) {
+      fetch(`${API_URL}/api/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMsg)
+      })
+      .then(res => res.json())
+      .then(savedMsg => {
+        if (setMessages) setMessages(prev => [...prev, savedMsg]);
+        setToastMsg(`تم إرسال الرسالة إلى ${targetParentName} بنجاح عبر المنصة!`);
+        setTimeout(() => setToastMsg(null), 3000);
+      })
+      .catch(err => {
+        if (setMessages) setMessages(prev => [...prev, newMsg]);
+        setToastMsg(`تم إرسال الرسالة محلياً (حدث خطأ في الشبكة)`);
+        setTimeout(() => setToastMsg(null), 3000);
+      });
+    } else {
+      if (setMessages) setMessages(prev => [...prev, newMsg]);
+      setToastMsg(`تم إرسال الرسالة محلياً!`);
+      setTimeout(() => setToastMsg(null), 3000);
+    }
+  };
   
   // Basic calculations
   const total = payments.reduce((a, p) => a + p.amount - (p.discount || 0), 0);
@@ -2364,28 +2435,99 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
         <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1.2fr 1fr" : "1fr", gap: 24 }}>
           {/* Urgent Financial Watchlist */}
           <Card t={t} style={{ padding: 22, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontWeight: 800, fontSize: 13, color: t.text, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-              <AnimIcon type="alert" size={14} color="#EF4444" />
-              <span>تنبيهات السداد العاجلة للأعضاء</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 13, color: t.text, display: "flex", alignItems: "center", gap: 8 }}>
+                <AnimIcon type="alert" size={14} color="#EF4444" />
+                <span>تنبيهات السداد للأعضاء</span>
+              </div>
+              <div style={{ display: "flex", gap: 4, background: t.inputBg, padding: 2, borderRadius: 8, border: `1px solid ${t.border}` }}>
+                <button 
+                  onClick={() => setWatchlistTab("unpaid_expired")}
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: watchlistTab === "unpaid_expired" ? t.purple : "transparent",
+                    color: watchlistTab === "unpaid_expired" ? "#fff" : t.textDim,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "'Cairo', sans-serif"
+                  }}
+                >
+                  منتهي / غير مسدد
+                </button>
+                <button 
+                  onClick={() => setWatchlistTab("nearing_expiry")}
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: watchlistTab === "nearing_expiry" ? t.purple : "transparent",
+                    color: watchlistTab === "nearing_expiry" ? "#fff" : t.textDim,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontFamily: "'Cairo', sans-serif"
+                  }}
+                >
+                  شارف على الانتهاء (حصة 11+)
+                </button>
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: t.textDim, marginBottom: 14 }}>قائمة اللاعبين الذين انتهت حصص دوراتهم التدريبية أو لم يسددوا الاشتراك</div>
+            <div style={{ fontSize: 11, color: t.textDim, marginBottom: 14 }}>
+              {watchlistTab === "nearing_expiry" 
+                ? "قائمة اللاعبين الذين شارف اشتراكهم على الانتهاء وبدأوا في الحصص الأخيرة (الحصة 11 أو 12)"
+                : "قائمة اللاعبين الذين انتهت حصص دوراتهم التدريبية أو لم يسددوا الاشتراك"}
+            </div>
             
             <div style={{ display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", maxHeight: 280, flex: 1, paddingLeft: 4 }}>
               {players.filter(p => {
                 const sub = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
-                return sub.isUnpaid || sub.isExpired;
+                if (watchlistTab === "nearing_expiry") {
+                  const completedCount = sub.cycleSessions.filter(s => !s.isFuture).length;
+                  return !sub.isUnpaid && !sub.isExpired && completedCount >= 10 && completedCount < 12;
+                } else {
+                  return sub.isUnpaid || sub.isExpired;
+                }
               }).length === 0 ? (
                 <div style={{ display: "grid", placeItems: "center", height: 160, color: "#10B981", fontSize: 12, fontWeight: 800 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><AnimIcon type="party" size={16} color="#10B981" /> لا توجد متأخرات سداد حالياً!</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <AnimIcon type="party" size={16} color="#10B981" /> 
+                    {watchlistTab === "nearing_expiry" ? "لا يوجد لاعبون شارف اشتراكهم على الانتهاء حالياً!" : "لا توجد متأخرات سداد حالياً!"}
+                  </span>
                 </div>
               ) : (
                 players.filter(p => {
                   const sub = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
-                  return sub.isUnpaid || sub.isExpired;
+                  if (watchlistTab === "nearing_expiry") {
+                    const completedCount = sub.cycleSessions.filter(s => !s.isFuture).length;
+                    return !sub.isUnpaid && !sub.isExpired && completedCount >= 10 && completedCount < 12;
+                  } else {
+                    return sub.isUnpaid || sub.isExpired;
+                  }
                 }).map(p => {
                   const sub = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
-                  const statusLabel = sub.isUnpaid ? "غير مسدد" : `منتهي (${sub.attendedCount}/13)`;
-                  const statusColor = sub.isUnpaid ? "#EF4444" : "#F59E0B";
+                  const completedCount = sub.cycleSessions.filter(s => !s.isFuture).length;
+                  const parent = parents.find(x => x.id === p.parentId);
+                  
+                  let statusLabel = "";
+                  let statusColor = "";
+                  let reminderType = "";
+                  
+                  if (watchlistTab === "nearing_expiry") {
+                    statusLabel = `شارف على الانتهاء (${completedCount}/${sub.cycleSessions.length})`;
+                    statusColor = "#F59E0B";
+                    reminderType = "nearing_expiry";
+                  } else {
+                    statusLabel = sub.isUnpaid ? "غير مسدد" : `منتهي (${sub.attendedCount}/${sub.cycleSessions.length})`;
+                    statusColor = sub.isUnpaid ? "#EF4444" : "#F59E0B";
+                    reminderType = "expired";
+                  }
+                  
+                  const textMsg = getReminderMessage(p, reminderType);
+                  const waLink = parent?.phone ? getWhatsAppLink(parent.phone, textMsg) : "";
+                  
                   return (
                     <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: `1px solid ${t.border}`, borderRadius: 12, background: t.inputBg, transition: "transform 0.2s" }} className="rh">
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2395,25 +2537,57 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                           <div style={{ fontSize: 10, color: t.textDim }}>{groups.find(g => g.id === p.groupId)?.name || "بدون مجموعة"} · <span style={{ color: statusColor, fontWeight: 700 }}>{statusLabel}</span></div>
                         </div>
                       </div>
-                    <button 
-                      onClick={() => copyReminder(p.name)}
-                      style={{
-                        background: `${t.purple}12`,
-                        color: t.purple,
-                        border: "none",
-                        borderRadius: 8,
-                        fontSize: 10,
-                        fontWeight: 800,
-                        padding: "6px 12px",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4
-                      }}
-                    >
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="messages" size={11} color={t.purple} /> نسخ رسالة تذكير</span>
-                    </button>
-                  </div>
+                      
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {/* WhatsApp Send Button */}
+                        {parent?.phone && (
+                          <a 
+                            href={waLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="إرسال عبر واتساب"
+                            style={{
+                              background: "rgba(37,211,102,0.12)",
+                              color: "#25D366",
+                              border: "none",
+                              borderRadius: 8,
+                              padding: "6px 8px",
+                              cursor: "pointer",
+                              display: "grid",
+                              placeItems: "center",
+                              textDecoration: "none"
+                            }}
+                          >
+                            <AnimIcon type="whatsapp" size={14} color="#25D366" />
+                          </a>
+                        )}
+                        
+                        {/* Platform Message Button */}
+                        {parent && (
+                          <button 
+                            onClick={() => setPlatformMsgModal({
+                              parentId: parent.id,
+                              parentName: parent.name,
+                              playerName: p.name,
+                              text: textMsg
+                            })}
+                            title="إرسال رسالة داخل المنصة"
+                            style={{
+                              background: `${t.purple}12`,
+                              color: t.purple,
+                              border: "none",
+                              borderRadius: 8,
+                              padding: "6px 8px",
+                              cursor: "pointer",
+                              display: "grid",
+                              placeItems: "center"
+                            }}
+                          >
+                            <AnimIcon type="messages" size={14} color={t.purple} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   );
                 })
               )}
@@ -2458,6 +2632,46 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
           </Card>
         </div>
       </div>
+      
+      {platformMsgModal && (
+        <Modal 
+          title={`إرسال رسالة عبر المنصة إلى ${platformMsgModal.parentName}`} 
+          onClose={() => setPlatformMsgModal(null)} 
+          t={t}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: isDesktop ? 450 : "100%" }}>
+            <div style={{ fontSize: 12, color: t.textDim }}>الرسالة الموجهة لولي الأمر:</div>
+            <textarea
+              value={platformMsgModal.text}
+              onChange={e => setPlatformMsgModal(prev => ({ ...prev, text: e.target.value }))}
+              style={{
+                width: "100%",
+                minHeight: 150,
+                background: t.inputBg,
+                border: `1px solid ${t.border}`,
+                borderRadius: 10,
+                color: t.text,
+                padding: 12,
+                outline: "none",
+                fontFamily: "'Cairo', sans-serif",
+                fontSize: 12,
+                lineHeight: 1.6
+              }}
+            />
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 10 }}>
+              <Btn 
+                onClick={() => {
+                  handleSendPlatformMessage(platformMsgModal.parentId, platformMsgModal.parentName, platformMsgModal.text);
+                  setPlatformMsgModal(null);
+                }}
+              >
+                <AnimIcon type="messages" size={14} color="#fff" /> إرسال الآن
+              </Btn>
+              <Btn variant="secondary" onClick={() => setPlatformMsgModal(null)}>إلغاء</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
