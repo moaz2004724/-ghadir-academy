@@ -256,7 +256,7 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
     current.setHours(0, 0, 0, 0);
 
     let safety = 0;
-    while (cycleDates.length < 13 && safety < 5000) {
+    while (cycleDates.length < 12 && safety < 5000) {
       safety++;
       const dateStr = getLocalDateString(current);
       if (limitDateStr && dateStr >= limitDateStr) {
@@ -276,7 +276,7 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
       if (inActiveFreeze) {
         // The player is currently frozen from this point on.
         // We push placeholders for all remaining sessions.
-        while (cycleDates.length < 13) {
+        while (cycleDates.length < 12) {
           cycleDates.push({ date: null, status: "مجمد" });
         }
         break;
