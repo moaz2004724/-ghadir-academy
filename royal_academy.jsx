@@ -1893,6 +1893,7 @@ export default function App() {
 ══════════════════════════════════════════════════════════ */
 function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, players, setPlayers, parents, payments, setPayments, attendance, setAttendance, coachesAttendance, setCoachesAttendance, evals, messages, setMessages, prices, setPrices, trainings, setTrainings, t, syncStatus }) {
   const [tab, setTab] = useState("overview");
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const tabs = [
     { id: "overview",     icon: "dashboard",    label: "نظرة عامة"   },
     { id: "teams",        icon: "teams",        label: "الفرق"        },
@@ -1907,11 +1908,11 @@ function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, p
   ];
   return (
     <Shell title="لوحة الإدارة" subtitle="أكاديمية رويالز الرياضية" color="#2563EB" icon="dashboard" tabs={tabs} activeTab={tab} setActiveTab={setTab} onLogout={onLogout} badge="مدير عام" user={user} t={t} syncStatus={syncStatus}>
-      {tab === "overview"  && <AdminOverview players={players} coaches={coaches} groups={groups} payments={payments} attendance={attendance} trainings={trainings} t={t} parents={parents} messages={messages} setMessages={setMessages} />}
+      {tab === "overview"  && <AdminOverview players={players} coaches={coaches} groups={groups} payments={payments} attendance={attendance} trainings={trainings} t={t} parents={parents} messages={messages} setMessages={setMessages} setTab={setTab} setSelectedPlayerId={setSelectedPlayerId} />}
       {tab === "teams"     && <AdminTeams groups={groups} setGroups={setGroups} coaches={coaches} players={players} t={t} />}
       {tab === "attendance" && <AdminAttendance groups={groups} players={players} coaches={coaches} attendance={attendance} setAttendance={setAttendance} coachesAttendance={coachesAttendance} setCoachesAttendance={setCoachesAttendance} t={t} payments={payments} trainings={trainings} />}
       {tab === "coaches"   && <AdminCoaches coaches={coaches} setCoaches={setCoaches} groups={groups} players={players} payments={payments} t={t} />}
-      {tab === "players"   && <AdminPlayers players={players} setPlayers={setPlayers} groups={groups} parents={parents} evals={evals} coaches={coaches} t={t} trainings={trainings} attendance={attendance} payments={payments} />}
+      {tab === "players"   && <AdminPlayers players={players} setPlayers={setPlayers} groups={groups} parents={parents} evals={evals} coaches={coaches} t={t} trainings={trainings} attendance={attendance} payments={payments} selectedPlayerId={selectedPlayerId} setSelectedPlayerId={setSelectedPlayerId} />}
       {tab === "payments"  && <AdminPayments payments={payments} setPayments={setPayments} players={players} coaches={coaches} parents={parents} prices={prices} t={t} />}
       {tab === "prices"    && <AdminPrices prices={prices} setPrices={setPrices} t={t} />}
       {tab === "schedule"  && <AdminTrainings trainings={trainings} setTrainings={setTrainings} groups={groups} coaches={coaches} t={t} />}
@@ -1922,7 +1923,7 @@ function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, p
 }
 
 /* ── Admin Overview ─────────────────────────────────── */
-function AdminOverview({ players, coaches, groups, payments, attendance = [], trainings = [], t, parents = [], messages = [], setMessages }) {
+function AdminOverview({ players, coaches, groups, payments, attendance = [], trainings = [], t, parents = [], messages = [], setMessages, setTab, setSelectedPlayerId }) {
   const [activeChart, setActiveChart] = useState("finance");
   const [toastMsg, setToastMsg] = useState(null);
   const [watchlistTab, setWatchlistTab] = useState("unpaid_expired");
@@ -2471,13 +2472,13 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                     fontFamily: "'Cairo', sans-serif"
                   }}
                 >
-                  شارف على الانتهاء (حصة 11+)
+                  شارف على الانتهاء (حصة 11-12)
                 </button>
               </div>
             </div>
             <div style={{ fontSize: 11, color: t.textDim, marginBottom: 14 }}>
               {watchlistTab === "nearing_expiry" 
-                ? "قائمة اللاعبين الذين شارف اشتراكهم على الانتهاء وبدأوا في الحصص الأخيرة (الحصة 11 أو 12)"
+                ? "قائمة اللاعبين الذين أتمّوا 10 أو 11 حصة تدريبية (سواء حضور أو غياب) ويتبقى لهم حصة أو حصتان"
                 : "قائمة اللاعبين الذين انتهت حصص دوراتهم التدريبية أو لم يسددوا الاشتراك"}
             </div>
             
@@ -2531,7 +2532,15 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                   
                   return (
                     <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: `1px solid ${t.border}`, borderRadius: 12, background: t.inputBg, transition: "transform 0.2s" }} className="rh">
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div 
+                        onClick={() => {
+                          if (setSelectedPlayerId && setTab) {
+                            setSelectedPlayerId(p.id);
+                            setTab("players");
+                          }
+                        }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+                      >
                         <Avatar name={p.name} size={30} color={statusColor}/>
                         <div>
                           <div style={{ fontSize: 12, fontWeight: 800, color: t.text }}>{p.name}</div>
@@ -3046,14 +3055,22 @@ function AdminCoaches({ coaches, setCoaches, groups, players, payments, t }) {
 }
 
 /* ── Admin Players ──────────────────────────────────── */
-function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t, trainings, attendance, payments }) {
-  const [sel, setSel]   = useState(null);
+function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t, trainings, attendance, payments, selectedPlayerId, setSelectedPlayerId }) {
+  const [sel, setSel]   = useState(selectedPlayerId || null);
   const [modal, setModal] = useState(false);
   const [freezeModal, setFreezeModal] = useState(null);
   const [search, setSearch] = useState("");
   const emptyP = { name: "", age: "", groupId: groups[0]?.id || "", phone: "", position: "مهاجم", status: "نشط", score: 80, speed: 75, stamina: 75, technique: 75, teamwork: 75, goals: 0, assists: 0, attendancePct: 90, weight: "", height: "", parentId: "__new__", email: "", password: "", bus: "" };
   const [form, setForm] = useState(emptyP);
   const filtered = players.filter(p => p.name.includes(search) || (groups.find(g => g.id === p.groupId)?.name || "").includes(search));
+
+  React.useEffect(() => {
+    if (selectedPlayerId) {
+      setSel(selectedPlayerId);
+    } else {
+      setSel(null);
+    }
+  }, [selectedPlayerId]);
 
   const handleToggleFreeze = (p) => {
     setFreezeModal({
@@ -3112,7 +3129,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
   if (sel) {
     const p   = players.find(x => x.id === sel);
     if (!p) { 
-      setTimeout(() => setSel(null), 0);
+      setTimeout(() => { setSel(null); if (setSelectedPlayerId) setSelectedPlayerId(null); }, 0);
       return <div style={{ padding: 40, textAlign: "center", color: t.textDim }}>جاري تحميل بيانات اللاعب...</div>;
     }
     const subDetails = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
@@ -3132,7 +3149,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
     const par = parents.find(x => x.id === p.parentId);
     return (
       <div>
-        <button onClick={() => setSel(null)} style={{ background: t.bg2, border: `1px solid ${t.border}`, color: t.textDim, borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 18, fontFamily: "'Cairo',sans-serif" }}>← رجوع</button>
+        <button onClick={() => { setSel(null); if (setSelectedPlayerId) setSelectedPlayerId(null); }} style={{ background: t.bg2, border: `1px solid ${t.border}`, color: t.textDim, borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 18, fontFamily: "'Cairo',sans-serif" }}>← رجوع</button>
         <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 16 }}>
           <Card t={t} style={{ padding: 24 }}>
             <div style={{ textAlign: "center", marginBottom: 16 }}>
