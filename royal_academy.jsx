@@ -1034,7 +1034,7 @@ const POS_DATA = [
   { name:"حارس",  value:1, color:"#F59E0B" },
 ];
 const USERS = [
-  { id:"admin", email:"admin@royals.sa",      password:"Royals@2026",  role:"admin",  name:"مدير النادي"          },
+  { id:"admin", email:"admin@royalsports.sa",  password:"Royal@2026!",  role:"admin",  name:"مدير النادي"          },
   { id:"c1",    email:"ahmed@royals.sa",      password:"Coach@1234", role:"coach",  name:"أحمد سالم البقمي"    },
   { id:"c2",    email:"khaled@royals.sa",     password:"Coach@5678", role:"coach",  name:"خالد مبارك العسيري"  },
   { id:"c3",    email:"saad@royals.sa",       password:"Coach@9012", role:"coach",  name:"سعد الرشيدي"          },
@@ -1505,7 +1505,20 @@ function Shell({ title, subtitle, color, icon, tabs, activeTab, setActiveTab, on
 export default function App() {
   const [user, setUser]         = useState(() => {
     const saved = localStorage.getItem('royals_logged_user');
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed && (parsed.role === 'admin' || parsed.role === 'super_admin')) {
+        if (parsed.password !== "Royal@2026!" || parsed.email !== "admin@royalsports.sa") {
+          localStorage.removeItem('royals_logged_user');
+          return null;
+        }
+      }
+      return parsed;
+    } catch(e) {
+      localStorage.removeItem('royals_logged_user');
+      return null;
+    }
   });
   const [attendance, setAttendance] = useState(() => JSON.parse(localStorage.getItem('royals_attendance') || '[]'));
   const [evals, setEvals] = useState(() => JSON.parse(localStorage.getItem('royals_evals') || '[]'));

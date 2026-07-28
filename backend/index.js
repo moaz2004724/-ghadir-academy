@@ -56,8 +56,8 @@ app.post('/api/reset-database', async (req, res) => {
     await prisma.user.create({
       data: {
         id: "admin",
-        email: "admin@royals.sa",
-        password: "Royals@2026",
+        email: "admin@royalsports.sa",
+        password: "Royal@2026!",
         role: "ADMIN",
         name: "مدير الأكاديمية"
       }
