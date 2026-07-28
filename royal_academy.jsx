@@ -11,7 +11,7 @@ import logoIcon from "./icon logo.png";
 const API_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || (
   typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
     ? "http://localhost:3001"
-    : "https://royal-academy-system-production.up.railway.app"
+    : ""
 );
 
 const isTrainingActive = (tr) => {
@@ -1240,6 +1240,7 @@ function LoginPage({ onLogin, players = [], coaches = [], t }) {
   const handle = () => {
     setLoading(true); setError("");
     setTimeout(async () => {
+      let loggedInUser = null;
       if (API_URL) {
         try {
           const res = await fetch(`${API_URL}/api/login`, {
@@ -1247,28 +1248,36 @@ function LoginPage({ onLogin, players = [], coaches = [], t }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: email.trim(), password: pass })
           });
-          const data = await res.json();
-          if (res.ok) onLogin(data);
-          else setError(data.error || "خطأ في الدخول");
+          if (res.ok) {
+            loggedInUser = await res.json();
+          }
         } catch (e) {
-          setError("تعذر الاتصال بالسيرفر");
+          // API unreachable, will fallback to local check
         }
+      }
+
+      if (loggedInUser) {
+        onLogin(loggedInUser);
       } else {
-        let found = USERS.find(u => u.email === email.trim() && u.password === pass);
+        const inputEmail = email.trim().toLowerCase();
+        let found = USERS.find(u => u.email.toLowerCase() === inputEmail && u.password === pass);
         if (!found) {
-          const p = players.find(x => x.email === email.trim() && x.password === pass);
+          const p = players.find(x => (x.email && x.email.toLowerCase() === inputEmail) && x.password === pass);
           if (p) {
             found = { id: `par_${p.id}`, email: p.email, role: "parent", name: `ولي أمر ${p.name}`, playerIds: [p.id] };
           }
         }
         if (!found) {
-          const c = coaches.find(x => x.email === email.trim() && x.password === pass);
+          const c = coaches.find(x => (x.email && x.email.toLowerCase() === inputEmail) && x.password === pass);
           if (c) {
             found = { ...c, role: "coach" };
           }
         }
-        if (found) onLogin(found);
-        else setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+        if (found) {
+          onLogin(found);
+        } else {
+          setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+        }
       }
       setLoading(false);
     }, 700);
