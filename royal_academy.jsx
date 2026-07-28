@@ -255,8 +255,35 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
     let current = new Date(parts[0], parts[1] - 1, parts[2]);
     current.setHours(0, 0, 0, 0);
 
+    // Determine target session count for this cycle:
+    // Expired subscriptions that finished on 12 prior to today stay at 12.
+    // Active subscriptions (running today or in future) and new renewals get 13 (12 + 1 free).
+    let tempCurrent = new Date(current);
+    let temp12thDate = null;
+    let tempCount = 0;
+    let tempSafety = 0;
+    while (tempCount < 12 && tempSafety < 5000) {
+      tempSafety++;
+      const dStr = getLocalDateString(tempCurrent);
+      if (limitDateStr && dStr >= limitDateStr) break;
+      const inCompFreeze = ranges.some(r => r.start && r.end && dStr >= r.start && dStr <= r.end);
+      if (inCompFreeze) {
+        tempCurrent.setDate(tempCurrent.getDate() + 1);
+        continue;
+      }
+      const inActFreeze = ranges.some(r => r.start && !r.end && dStr >= r.start);
+      if (inActFreeze) break;
+      if (isGroupTrainingDay(tempCurrent, dStr)) {
+        tempCount++;
+        temp12thDate = dStr;
+      }
+      tempCurrent.setDate(tempCurrent.getDate() + 1);
+    }
+
+    const targetSessionCount = (c < P || (temp12thDate && temp12thDate < todayStr)) ? 12 : 13;
+
     let safety = 0;
-    while (cycleDates.length < 12 && safety < 5000) {
+    while (cycleDates.length < targetSessionCount && safety < 5000) {
       safety++;
       const dateStr = getLocalDateString(current);
       if (limitDateStr && dateStr >= limitDateStr) {
@@ -276,7 +303,7 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
       if (inActiveFreeze) {
         // The player is currently frozen from this point on.
         // We push placeholders for all remaining sessions.
-        while (cycleDates.length < 12) {
+        while (cycleDates.length < targetSessionCount) {
           cycleDates.push({ date: null, status: "مجمد" });
         }
         break;
@@ -1931,16 +1958,15 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
 
   const getReminderMessage = (p, type) => {
     const sub = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
-    const completedCount = sub.cycleSessions.filter(s => !s.isFuture).length;
     const startDate = sub.cycleSessions[0]?.date ? formatArabicDate(sub.cycleSessions[0].date) : "غير محدد";
     const endDate = sub.cycleSessions[sub.cycleSessions.length - 1]?.date ? formatArabicDate(sub.cycleSessions[sub.cycleSessions.length - 1].date) : "غير محدد";
     const groupName = groups.find(g => g.id === p.groupId)?.name || "بدون مجموعة";
     
     if (type === "nearing_expiry") {
-      return `السلام عليكم ورحمة الله وبركاته،\n\nنحيطكم علماً بأن اشتراك اللاعب البطل *(${p.name})* شارف على الانتهاء.\n\n*تفاصيل الدورة التدريبية الحالية:*\n• المجموعة: *${groupName}*\n• عدد الحصص المنفذة: *${completedCount}* من أصل *12* حصة.\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة التقريبي: *${endDate}*\n\nيرجى سداد اشتراك الدورة الجديدة لضمان استمرارية تدريب ابنكم البطل دون انقطاع. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية رويالز الرياضية.`;
+      return `السلام عليكم ورحمة الله وبركاته،\n\nنحيطكم علماً بأن اشتراك اللاعب البطل *(${p.name})* شارف على الانتهاء.\n\n*تفاصيل الدورة التدريبية:*\n• المجموعة: *${groupName}*\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة: *${endDate}*\n\nيرجى سداد اشتراك الدورة الجديدة لضمان استمرارية تدريب ابنكم البطل دون انقطاع. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية رويالز الرياضية.`;
     } else {
-      const statusLabel = sub.isUnpaid ? "غير مسدد" : `منتهي (${completedCount}/12)`;
-      return `السلام عليكم ورحمة الله وبركاته،\n\nنود تذكيركم بلطف بضرورة سداد اشتراك اللاعب البطل *(${p.name})* في أكاديمية رويالز الرياضية.\n\n*تفاصيل الدورة التدريبية الحالية:*\n• المجموعة: *${groupName}*\n• حالة الاشتراك: *${statusLabel}*\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة التقريبي: *${endDate}*\n\nيرجى سداد الرسوم المستحقة لتفعيل اشتراك اللاعب. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية رويالز الرياضية.`;
+      const statusLabel = sub.isUnpaid ? "غير مسدد" : "منتهي";
+      return `السلام عليكم ورحمة الله وبركاته،\n\nنود تذكيركم بلطف بضرورة سداد اشتراك اللاعب البطل *(${p.name})* في أكاديمية رويالز الرياضية.\n\n*تفاصيل الدورة التدريبية:*\n• المجموعة: *${groupName}*\n• حالة الاشتراك: *${statusLabel}*\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة: *${endDate}*\n\nيرجى سداد الرسوم المستحقة لتجديد اشتراك اللاعب لضمان استمرارية التدريب. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية رويالز الرياضية.`;
     }
   };
 
@@ -2472,13 +2498,13 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                     fontFamily: "'Cairo', sans-serif"
                   }}
                 >
-                  شارف على الانتهاء (حصة 11-12)
+                  شارف على الانتهاء
                 </button>
               </div>
             </div>
             <div style={{ fontSize: 11, color: t.textDim, marginBottom: 14 }}>
               {watchlistTab === "nearing_expiry" 
-                ? "قائمة اللاعبين الذين أتمّوا 10 أو 11 حصة تدريبية (سواء حضور أو غياب) ويتبقى لهم حصة أو حصتان"
+                ? "قائمة اللاعبين الذين يتبقى لهم حصة أو حصتان على انتهاء الدورة التدريبية"
                 : "قائمة اللاعبين الذين انتهت حصص دوراتهم التدريبية أو لم يسددوا الاشتراك"}
             </div>
             
@@ -2487,7 +2513,7 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                 const sub = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
                 if (watchlistTab === "nearing_expiry") {
                   const completedCount = sub.cycleSessions.filter(s => !s.isFuture).length;
-                  return !sub.isUnpaid && !sub.isExpired && completedCount >= 10 && completedCount < 12;
+                  return !sub.isUnpaid && !sub.isExpired && completedCount >= (sub.cycleSessions.length - 2) && completedCount < sub.cycleSessions.length;
                 } else {
                   return sub.isUnpaid || sub.isExpired;
                 }
@@ -2503,7 +2529,7 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                   const sub = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
                   if (watchlistTab === "nearing_expiry") {
                     const completedCount = sub.cycleSessions.filter(s => !s.isFuture).length;
-                    return !sub.isUnpaid && !sub.isExpired && completedCount >= 10 && completedCount < 12;
+                    return !sub.isUnpaid && !sub.isExpired && completedCount >= (sub.cycleSessions.length - 2) && completedCount < sub.cycleSessions.length;
                   } else {
                     return sub.isUnpaid || sub.isExpired;
                   }
