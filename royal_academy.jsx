@@ -1953,6 +1953,7 @@ function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, p
     { id: "prices",       icon: "prices",       label: "الإعدادات"    },
     { id: "schedule",     icon: "schedule",     label: "التمارين"     },
     { id: "reports",      icon: "chart",        label: "التقارير"     },
+    { id: "events",       icon: "notify",       label: "الفعاليات"    },
     { id: "messages",     icon: "messages",     label: "الرسائل",      badge: messages.filter(m => m.to === "admin" && !m.read).length || undefined },
   ];
   return (
@@ -1966,6 +1967,7 @@ function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, p
       {tab === "prices"    && <AdminPrices prices={prices} setPrices={setPrices} t={t} />}
       {tab === "schedule"  && <AdminTrainings trainings={trainings} setTrainings={setTrainings} groups={groups} coaches={coaches} t={t} />}
       {tab === "reports"   && <AdminReports players={players} coaches={coaches} groups={groups} payments={payments} attendance={attendance} evals={evals} t={t} />}
+      {tab === "events"    && <AdminEvents players={players} groups={groups} parents={parents} payments={payments} trainings={trainings} attendance={attendance} t={t} />}
       {tab === "messages"  && <Messaging messages={messages} setMessages={setMessages} meId="admin" meName="الإدارة" coaches={coaches} parents={parents} t={t} />}
     </Shell>
   );
@@ -7118,6 +7120,362 @@ function Messaging({ messages, setMessages, meId, meName, coaches, parents, t, r
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+/* ── Admin Events & Broadcasts (الفعاليات) ─────────────────── */
+function AdminEvents({ players = [], groups = [], parents = [], payments = [], trainings = [], attendance = [], t }) {
+  const [msg, setMsg] = useState("");
+  const [groupFilter, setGroupFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [toast, setToast] = useState(null);
+  const [toastType, setToastType] = useState("success");
+
+  const templates = [
+    { label: "تذكير بالاشتراك", text: "نود تذكيركم بلطف بأن اشتراك اللاعب قد شارف على الانتهاء، يرجى سداد رسوم الدورة الجديدة لتجديد الاشتراك واستمرار التدريب. شاكرين حسن تعاونكم." },
+    { label: "ترحيب باللاعب", text: "نرحب باللاعب في أكاديمية رويالز الرياضية ونسعد بانضمامه إلينا متمنين له رحلة تدريبية مميزة ومليئة بالنجاح والتألق." },
+    { label: "تذكير بالموعد", text: "يرجى التكرم بحضور اللاعب للتمرين في الوقت المحدد تماماً مع إحضار الزي الرسمي للأكاديمية والالتزام بالتعليمات." },
+    { label: "تجميد مؤقت", text: "نود إفادتكم بأنه تم تجميد اشتراك اللاعب بناءً على طلبكم مؤقتاً، وسنوافيكم بموعد استئناف النشاط الرياضي لاحقاً." },
+  ];
+
+  const showNotification = (message, type = "success") => {
+    setToast(message);
+    setToastType(type);
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const getGreeting = (playerName) => {
+    return `السلام عليكم ورحمة الله وبركاته\nإلى ولي أمر الطالب البطل (${playerName}) المحترم:\n\n`;
+  };
+
+  const handleSend = (player) => {
+    const parent = parents.find(x => x.id === player.parentId);
+    const phone = parent?.phone || player.phone;
+
+    if (!phone) {
+      showNotification("لا يوجد رقم هاتف مسجل لولي الأمر أو اللاعب!", "danger");
+      return;
+    }
+
+    if (!msg.trim()) {
+      showNotification("الرجاء كتابة نص الرسالة أولاً!", "danger");
+      return;
+    }
+
+    const greeting = getGreeting(player.name);
+    const fullMsg = `${greeting}${msg}`;
+
+    // Format phone number to Saudi international format
+    let cleanPhone = phone.trim().replace(/\D/g, "");
+    if (cleanPhone.startsWith("05") && cleanPhone.length === 10) {
+      cleanPhone = "966" + cleanPhone.substring(1);
+    } else if (cleanPhone.startsWith("5") && cleanPhone.length === 9) {
+      cleanPhone = "966" + cleanPhone;
+    }
+
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(fullMsg)}`;
+    window.open(url, "_blank");
+    showNotification(`تم توليد رابط الإرسال للاعب ${player.name} بنجاح!`);
+  };
+
+  // Filter players
+  const filteredPlayers = players.filter(p => {
+    const subDetails = getPlayerSubscriptionDetails(p, trainings, attendance, payments);
+    const status = subDetails.isUnpaid ? "unpaid" : subDetails.isExpired ? "expired" : "active";
+
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    const matchesGroup = groupFilter === "all" || p.groupId === groupFilter;
+    const matchesStatus = statusFilter === "all" || status === statusFilter;
+
+    return matchesSearch && matchesGroup && matchesStatus;
+  });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, padding: "10px 0" }}>
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          background: toastType === "danger" ? "#EF4444" : "#10B981",
+          color: "#FFF",
+          padding: "12px 20px",
+          borderRadius: 12,
+          fontSize: 12,
+          fontWeight: 800,
+          boxShadow: toastType === "danger" ? "0 10px 25px rgba(239,68,68,0.3)" : "0 10px 25px rgba(16,185,129,0.3)",
+          zIndex: 99999,
+          animation: "scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both"
+        }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <AnimIcon type={toastType === "danger" ? "alert" : "check"} size={14} color="#FFF" />
+            {toast}
+          </span>
+        </div>
+      )}
+
+      {/* Header banner */}
+      <div style={{ background: "linear-gradient(135deg, #2563EB, #1D4ED8)", borderRadius: 20, padding: "26px 30px", position: "relative", overflow: "hidden", border: `1px solid ${t.border}` }}>
+        <div style={{ position: "absolute", top: -20, left: -20, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+        <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 50, height: 50, borderRadius: 14, background: "rgba(255,255,255,0.12)", display: "grid", placeItems: "center" }}>
+            <AnimIcon type="notify" size={24} color="#FFF" />
+          </div>
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: "#FFF", marginBottom: 4 }}>منصة الفعاليات والرسائل الجماعية</h2>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", fontWeight: 500 }}>إرسال وتواصل سريع مع أولياء الأمور عبر منصة الواتساب وتصفية اللاعبين حسب الفئات والاشتراكات.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20, direction: "rtl" }}>
+        
+        {/* Right Section: Filters & Matching Players */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <Card t={t} style={{ padding: "16px 20px" }}>
+            {/* Filters Row */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 11, color: t.textDim, fontWeight: 700, marginBottom: 6 }}>البحث باسم اللاعب</label>
+                <div style={{ position: "relative" }}>
+                  <input 
+                    type="text" 
+                    placeholder="ابحث عن اسم لاعب..." 
+                    value={search} 
+                    onChange={e => setSearch(e.target.value)}
+                    style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.border2}`, borderRadius: 10, padding: "10px 12px 10px 36px", color: t.text, fontSize: 13, outline: "none", fontFamily: "inherit" }}
+                  />
+                  <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", opacity: 0.6, display: "grid", placeItems: "center" }}>
+                    <AnimIcon type="search" size={14} color={t.textDim} />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 11, color: t.textDim, fontWeight: 700, marginBottom: 6 }}>تصفية حسب الفريق</label>
+                <select 
+                  value={groupFilter} 
+                  onChange={e => setGroupFilter(e.target.value)} 
+                  style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.border2}`, borderRadius: 10, padding: "10px 12px", color: t.text, fontSize: 13, outline: "none", fontFamily: "inherit" }}
+                >
+                  <option value="all">جميع الفرق والدرجات</option>
+                  {groups.map(g => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: 11, color: t.textDim, fontWeight: 700, marginBottom: 6 }}>حالة الاشتراك</label>
+                <select 
+                  value={statusFilter} 
+                  onChange={e => setStatusFilter(e.target.value)} 
+                  style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.border2}`, borderRadius: 10, padding: "10px 12px", color: t.text, fontSize: 13, outline: "none", fontFamily: "inherit" }}
+                >
+                  <option value="all">جميع الاشتراكات</option>
+                  <option value="active">نشط</option>
+                  <option value="unpaid">غير مسدد</option>
+                  <option value="expired">منتهي</option>
+                </select>
+              </div>
+            </div>
+          </Card>
+
+          {/* List of Players matching filter */}
+          <Card t={t} style={{ display: "flex", flexDirection: "column", minHeight: 400 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${t.border}`, padding: "16px 20px" }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: t.text }}>اللاعبون المطابقون للتصفية ({filteredPlayers.length})</div>
+              <div style={{ display: "flex", gap: 10, fontSize: 11 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#10B981" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10B981" }} />
+                  نشط: {filteredPlayers.filter(p => !getPlayerSubscriptionDetails(p, trainings, attendance, payments).isUnpaid && !getPlayerSubscriptionDetails(p, trainings, attendance, payments).isExpired).length}
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#F59E0B" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#F59E0B" }} />
+                  منتهي: {filteredPlayers.filter(p => getPlayerSubscriptionDetails(p, trainings, attendance, payments).isExpired).length}
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#EF4444" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#EF4444" }} />
+                  غير مسدد: {filteredPlayers.filter(p => getPlayerSubscriptionDetails(p, trainings, attendance, payments).isUnpaid).length}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ overflowY: "auto", maxHeight: 480 }}>
+              {filteredPlayers.map((player, idx) => {
+                const group = groups.find(g => g.id === player.groupId);
+                const subDetails = getPlayerSubscriptionDetails(player, trainings, attendance, payments);
+                const parent = parents.find(x => x.id === player.parentId);
+                const parentName = parent?.name || "غير محدد";
+                const phone = parent?.phone || player.phone;
+
+                let statusLabel = "نشط";
+                let statusColor = "#10B981";
+                if (subDetails.isUnpaid) {
+                  statusLabel = "غير مسدد";
+                  statusColor = "#EF4444";
+                } else if (subDetails.isExpired) {
+                  statusLabel = "منتهي";
+                  statusColor = "#F59E0B";
+                }
+
+                return (
+                  <div key={player.id} 
+                    style={{ 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "space-between", 
+                      padding: "14px 20px", 
+                      borderBottom: idx === filteredPlayers.length - 1 ? "none" : `1px solid ${t.border}`,
+                      background: idx % 2 === 0 ? "rgba(0,0,0,0.01)" : "transparent"
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <Avatar name={player.name} size={36} color={group?.color || "#A855F7"} />
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{player.name}</span>
+                          {group && <Chip text={group.name} color={group.color} size={9} />}
+                        </div>
+                        <div style={{ fontSize: 11, color: t.textDim }}>
+                          ولي الأمر: <span style={{ color: t.textMid, fontWeight: 600 }}>{parentName}</span>
+                          {phone && <span style={{ margin: "0 6px" }}>·</span>}
+                          {phone && <span style={{ direction: "ltr", display: "inline-block" }}>{phone}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <span style={{ 
+                        background: `${statusColor}14`, 
+                        color: statusColor, 
+                        fontSize: 11, 
+                        fontWeight: 700, 
+                        padding: "4px 10px", 
+                        borderRadius: 12 
+                      }}>
+                        {statusLabel}
+                      </span>
+
+                      <button 
+                        onClick={() => handleSend(player)} 
+                        disabled={!phone}
+                        style={{ 
+                          background: phone ? "#10B981" : t.border, 
+                          color: "#FFF", 
+                          border: "none", 
+                          borderRadius: 8, 
+                          padding: "6px 12px", 
+                          fontSize: 11, 
+                          fontWeight: 700, 
+                          cursor: phone ? "pointer" : "not-allowed", 
+                          display: "inline-flex", 
+                          alignItems: "center", 
+                          gap: 6,
+                          transition: "all .2s",
+                          opacity: phone ? 1 : 0.4
+                        }}
+                      >
+                        <AnimIcon type="whatsapp" size={13} color="#FFF" />
+                        <span>إرسال واتساب</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {filteredPlayers.length === 0 && (
+                <div style={{ padding: "80px 20px", textAlign: "center", color: t.textDim }}>
+                  <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>لم نجد أي لاعب يطابق شروط التصفية والبحث الحالية.</div>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Left Section: Message Composer */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <Card t={t} style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: t.text, display: "flex", alignItems: "center", gap: 8 }}>
+              <AnimIcon type="edit" size={14} color="#2563EB" />
+              <span>محتوى الرسالة</span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ 
+                background: t.inputBg, 
+                border: `1px solid ${t.border2}`, 
+                borderRadius: 12, 
+                padding: "14px 16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10
+              }}>
+                {/* Auto-prepend preview (Dimmed style requested by user) */}
+                <div style={{ 
+                  color: t.textDim, 
+                  fontSize: 12, 
+                  lineHeight: 1.6,
+                  borderBottom: `1px dashed ${t.border}`, 
+                  paddingBottom: 8,
+                  opacity: 0.65,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 6
+                }}>
+                  <span style={{ display: "inline-flex", marginTop: 2 }}><AnimIcon type="whatsapp" size={13} color={t.textDim} /></span>
+                  <span>السلام عليكم ورحمة الله وبركاته - ولي أمر الطالب البطل (اسم اللاعب) المحترم:</span>
+                </div>
+                
+                <textarea 
+                  value={msg}
+                  onChange={e => setMsg(e.target.value)}
+                  placeholder="اكتب الرسالة الأساسية هنا... (سيتم لصقها تلقائياً بعد التحية أعلاه)"
+                  rows={6}
+                  style={{ 
+                    width: "100%", 
+                    border: "none", 
+                    background: "transparent", 
+                    color: t.text, 
+                    fontSize: 13, 
+                    outline: "none", 
+                    resize: "none",
+                    fontFamily: "inherit",
+                    lineHeight: 1.6
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: t.textDim, padding: "0 4px" }}>
+                <span>تأكد من اختيار قالب أو صياغة واضحة</span>
+                <span>{msg.length} حرفاً</span>
+              </div>
+            </div>
+
+            {/* Templates Section */}
+            <div style={{ borderTop: `1px solid ${t.border}`, paddingTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: t.textDim, marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                <AnimIcon type="schedule" size={12} color={t.textDim} />
+                <span>قوالب جاهزة سريعة</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {templates.map((tmp, idx) => (
+                  <button key={idx} onClick={() => setMsg(tmp.text)}
+                    style={{ textAlign: "right", padding: "10px 12px", borderRadius: 10, background: t.bg2, border: `1px solid ${t.border}`, color: t.textMid, fontSize: 11, cursor: "pointer", transition: "all .2s", fontFamily: "inherit" }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "#2563EB"} onMouseLeave={e => e.currentTarget.style.borderColor = t.border}>
+                    <div style={{ fontWeight: 800, marginBottom: 2, color: "#2563EB" }}>{tmp.label}</div>
+                    <div style={{ opacity: .7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tmp.text}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
+
+      </div>
     </div>
   );
 }
