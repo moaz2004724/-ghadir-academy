@@ -1,7 +1,7 @@
 {
-  "name": "royal-academy-backend",
+  "name": "ghadir-academy-backend",
   "version": "1.0.0",
-  "description": "Backend for Royal Academy Management System",
+  "description": "Backend for Ghadir Academy Management System",
   "main": "index.js",
   "type": "module",
   "scripts": {

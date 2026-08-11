@@ -1,6 +1,6 @@
-# Royal Academy Backend
+# Ghadir Academy Backend
 
-This is the backend for the Royal Academy Management System, built with Express, Prisma, and PostgreSQL.
+This is the backend for the Ghadir Academy Management System, built with Express, Prisma, and PostgreSQL.
 
 ## Deployment Steps
 

@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
 import logoMain from "./logo 1.png";
-import logoBlue from "./logo blue.png";
-import logoOrange from "./logo orange.png";
-import logoWhite from "./logo waith.png";
-import logoIcon from "./icon logo.png";
+import logoWhite from "./logo ابيض.png";
+import logoInstitutionColor from "./شعار مؤسسه غدير.png";
+import logoInstitutionWhite from "./شعار مؤسسه غدير٢.png";
 
 /* ═══ SETTINGS ════════════════════════════════════════ */
 const API_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || (
@@ -199,17 +198,7 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
       } else {
         const dayName = ARABIC_DAYS[dateObj.getDay()];
         if (tr.days && tr.days.includes(dayName)) {
-          // Parse creation date from tr.id if it's a client-side timestamp (e.g. tr17818...)
-          let createdDateStr = null;
-          if (tr.id && tr.id.startsWith("tr")) {
-            const ts = parseInt(tr.id.substring(2));
-            if (!isNaN(ts)) {
-              createdDateStr = getLocalDateString(new Date(ts));
-            }
-          }
-          if (!createdDateStr || dateStr >= createdDateStr) {
-            return true;
-          }
+          return true;
         }
       }
     }
@@ -402,17 +391,15 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
 }
 
 
-const RoyalLogo = ({ size = 48, variant = "main" }) => {
+const GhadirLogo = ({ size = 48, variant = "main" }) => {
   let src = logoMain;
-  if (variant === "blue") src = logoBlue;
-  else if (variant === "orange") src = logoOrange;
-  else if (variant === "white") src = logoWhite;
-  else if (variant === "icon") src = logoIcon;
+  if (variant === "white") src = logoWhite;
+  else src = logoMain;
 
   return (
     <img 
       src={src} 
-      alt="أكاديمية رويالز" 
+      alt="أكاديمية غدير" 
       style={{ 
         width: size, 
         height: size, 
@@ -486,7 +473,7 @@ const AnimIcon = ({ type, size = 20, color = "#60A5FA" }) => {
         <circle cx="10" cy="8" r="4" fill={color}/>
         <path d="M4 20v-1a6 6 0 0 1 12 0v1" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
         <g className="co-star">
-          <polygon points="19,2 20.2,4.8 23.2,4.8 21,6.6 21.9,9.5 19,7.6 16.1,9.5 17,6.6 14.8,4.8 17.8,4.8" fill="#FF7C00" opacity=".9"/>
+          <polygon points="19,2 20.2,4.8 23.2,4.8 21,6.6 21.9,9.5 19,7.6 16.1,9.5 17,6.6 14.8,4.8 17.8,4.8" fill="#EF4444" opacity=".9"/>
         </g>
       </svg>
     ),
@@ -956,19 +943,19 @@ const INIT_GROUPS = [
   { id: "g3", name: "تحت 15", coachId: "c3", color: "#F59E0B" },
 ];
 const INIT_COACHES = [
-  { id: "c1", name: "أحمد سالم البقمي",   phone: "0501110001", email: "ahmed@royals.sa",  password: "Coach@1234", specialty: "مهارات فردية", exp: 8,  cert: "UEFA B", groupId: "g1", joined: "2021-01-15", salary: 4500, perms: { ...DEFAULT_PERMS } },
-  { id: "c2", name: "خالد مبارك العسيري", phone: "0502220002", email: "khaled@royals.sa", password: "Coach@5678", specialty: "تكتيك وخطط",  exp: 12, cert: "AFC Pro",groupId: "g2", joined: "2019-06-01", salary: 5500, perms: { ...DEFAULT_PERMS } },
-  { id: "c3", name: "سعد الرشيدي",        phone: "0503330003", email: "saad@royals.sa",   password: "Coach@9012", specialty: "لياقة بدنية", exp: 6,  cert: "UEFA C", groupId: "g3", joined: "2022-03-10", salary: 4000, perms: { ...DEFAULT_PERMS } },
+  { id: "c1", name: "أحمد سالم البقمي",   phone: "0501110001", email: "ahmed@ghadirsports.sa",  password: "Coach@1234", specialty: "مهارات فردية", exp: 8,  cert: "UEFA B", groupId: "g1", joined: "2021-01-15", salary: 4500, perms: { ...DEFAULT_PERMS } },
+  { id: "c2", name: "خالد مبارك العسيري", phone: "0502220002", email: "khaled@ghadirsports.sa", password: "Coach@5678", specialty: "تكتيك وخطط",  exp: 12, cert: "AFC Pro",groupId: "g2", joined: "2019-06-01", salary: 5500, perms: { ...DEFAULT_PERMS } },
+  { id: "c3", name: "سعد الرشيدي",        phone: "0503330003", email: "saad@ghadirsports.sa",   password: "Coach@9012", specialty: "لياقة بدنية", exp: 6,  cert: "UEFA C", groupId: "g3", joined: "2022-03-10", salary: 4000, perms: { ...DEFAULT_PERMS } },
 ];
 const INIT_PLAYERS = [
-  { id:"p1", name:"محمد عبدالله الغامدي",   age:12, groupId:"g2", phone:"0501234567", status:"نشط",   score:85, speed:78, stamina:82, technique:90, teamwork:88, goals:12, assists:7,  attendancePct:92, weight:48, height:158, position:"مهاجم",    parentId:"par1", joinDate:"2024-09-01", email:"p1@royals.sa",  password:"Player@001" },
-  { id:"p2", name:"فيصل سعد القحطاني",      age:10, groupId:"g1", phone:"0507654321", status:"نشط",   score:90, speed:88, stamina:85, technique:92, teamwork:91, goals:18, assists:11, attendancePct:96, weight:38, height:142, position:"جناح أيمن",parentId:"par2", joinDate:"2024-08-15", email:"p2@royals.sa",  password:"Player@002" },
-  { id:"p3", name:"عمر خالد الزهراني",      age:14, groupId:"g3", phone:"0509876543", status:"نشط",   score:78, speed:80, stamina:75, technique:76, teamwork:80, goals:8,  assists:14, attendancePct:85, weight:58, height:170, position:"وسط",       parentId:"par3", joinDate:"2024-10-01", email:"p3@royals.sa",  password:"Player@003" },
-  { id:"p4", name:"يوسف أحمد الشهري",      age:11, groupId:"g2", phone:"0501112233", status:"موقوف", score:65, speed:62, stamina:60, technique:68, teamwork:65, goals:3,  assists:2,  attendancePct:60, weight:42, height:150, position:"مدافع",     parentId:"par4", joinDate:"2024-07-20", email:"p4@royals.sa",  password:"Player@004" },
-  { id:"p5", name:"بندر علي الدوسري",      age:13, groupId:"g3", phone:"0504445566", status:"نشط",   score:92, speed:94, stamina:90, technique:91, teamwork:93, goals:22, assists:9,  attendancePct:98, weight:54, height:165, position:"جناح أيسر",parentId:"par5", joinDate:"2024-09-10", email:"p5@royals.sa",  password:"Player@005" },
-  { id:"p6", name:"سلطان محمد العتيبي",    age:9,  groupId:"g1", phone:"0506667788", status:"نشط",   score:88, speed:85, stamina:87, technique:89, teamwork:86, goals:15, assists:8,  attendancePct:94, weight:32, height:135, position:"مهاجم",    parentId:"par1", joinDate:"2024-11-01", email:"p6@royals.sa",  password:"Player@006" },
-  { id:"p7", name:"نايف عبدالرحمن الحربي", age:12, groupId:"g2", phone:"0508889900", status:"نشط",   score:81, speed:79, stamina:83, technique:80, teamwork:84, goals:9,  assists:12, attendancePct:89, weight:46, height:155, position:"وسط",       parentId:"par6", joinDate:"2024-09-05", email:"p7@royals.sa",  password:"Player@007" },
-  { id:"p8", name:"ريان فهد السبيعي",      age:10, groupId:"g1", phone:"0502223344", status:"نشط",   score:74, speed:72, stamina:70, technique:76, teamwork:77, goals:6,  assists:5,  attendancePct:80, weight:36, height:140, position:"مدافع",     parentId:"par7", joinDate:"2024-10-20", email:"p8@royals.sa",  password:"Player@008" },
+  { id:"p1", name:"محمد عبدالله الغامدي",   age:12, groupId:"g2", phone:"0501234567", status:"نشط",   score:85, speed:78, stamina:82, technique:90, teamwork:88, goals:12, assists:7,  attendancePct:92, weight:48, height:158, position:"مهاجم",    parentId:"par1", joinDate:"2024-09-01", email:"p1@ghadirsports.sa",  password:"Player@001" },
+  { id:"p2", name:"فيصل سعد القحطاني",      age:10, groupId:"g1", phone:"0507654321", status:"نشط",   score:90, speed:88, stamina:85, technique:92, teamwork:91, goals:18, assists:11, attendancePct:96, weight:38, height:142, position:"جناح أيمن",parentId:"par2", joinDate:"2024-08-15", email:"p2@ghadirsports.sa",  password:"Player@002" },
+  { id:"p3", name:"عمر خالد الزهراني",      age:14, groupId:"g3", phone:"0509876543", status:"نشط",   score:78, speed:80, stamina:75, technique:76, teamwork:80, goals:8,  assists:14, attendancePct:85, weight:58, height:170, position:"وسط",       parentId:"par3", joinDate:"2024-10-01", email:"p3@ghadirsports.sa",  password:"Player@003" },
+  { id:"p4", name:"يوسف أحمد الشهري",      age:11, groupId:"g2", phone:"0501112233", status:"موقوف", score:65, speed:62, stamina:60, technique:68, teamwork:65, goals:3,  assists:2,  attendancePct:60, width:42, height:150, position:"مدافع",     parentId:"par4", joinDate:"2024-07-20", email:"p4@ghadirsports.sa",  password:"Player@004" },
+  { id:"p5", name:"بندر علي الدوسري",      age:13, groupId:"g3", phone:"0504445566", status:"نشط",   score:92, speed:94, stamina:90, technique:91, teamwork:93, goals:22, assists:9,  attendancePct:98, weight:54, height:165, position:"جناح أيسر",parentId:"par5", joinDate:"2024-09-10", email:"p5@ghadirsports.sa",  password:"Player@005" },
+  { id:"p6", name:"سلطان محمد العتيبي",    age:9,  groupId:"g1", phone:"0506667788", status:"نشط",   score:88, speed:85, stamina:87, technique:89, teamwork:86, goals:15, assists:8,  attendancePct:94, weight:32, height:135, position:"مهاجم",    parentId:"par1", joinDate:"2024-11-01", email:"p6@ghadirsports.sa",  password:"Player@006" },
+  { id:"p7", name:"نايف عبدالرحمن الحربي", age:12, groupId:"g2", phone:"0508889900", status:"نشط",   score:81, speed:79, stamina:83, technique:80, teamwork:84, goals:9,  assists:12, attendancePct:89, weight:46, height:155, position:"وسط",       parentId:"par6", joinDate:"2024-09-05", email:"p7@ghadirsports.sa",  password:"Player@007" },
+  { id:"p8", name:"ريان فهد السبيعي",      age:10, groupId:"g1", phone:"0502223344", status:"نشط",   score:74, speed:72, stamina:70, technique:76, teamwork:77, goals:6,  assists:5,  attendancePct:80, weight:36, height:140, position:"مدافع",     parentId:"par7", joinDate:"2024-10-20", email:"p8@ghadirsports.sa",  password:"Player@008" },
 ];
 const INIT_PARENTS = [
   { id:"par1", name:"عبدالله الغامدي",  phone:"0551234567", email:"aalghamdi@mail.com", playerIds:["p1","p6"], password:"Parent@111" },
@@ -1034,10 +1021,10 @@ const POS_DATA = [
   { name:"حارس",  value:1, color:"#F59E0B" },
 ];
 const USERS = [
-  { id:"admin", email:"admin@royalsports.sa",  password:"Royal@2026!",  role:"admin",  name:"مدير النادي"          },
-  { id:"c1",    email:"ahmed@royals.sa",      password:"Coach@1234", role:"coach",  name:"أحمد سالم البقمي"    },
-  { id:"c2",    email:"khaled@royals.sa",     password:"Coach@5678", role:"coach",  name:"خالد مبارك العسيري"  },
-  { id:"c3",    email:"saad@royals.sa",       password:"Coach@9012", role:"coach",  name:"سعد الرشيدي"          },
+  { id:"admin", email:"admin@ghadirsports.sa",  password:"Ghadir@2026!",  role:"admin",  name:"مدير النادي"          },
+  { id:"c1",    email:"ahmed@ghadirsports.sa",  password:"Coach@1234", role:"coach",  name:"أحمد سالم البقمي"    },
+  { id:"c2",    email:"khaled@ghadirsports.sa", password:"Coach@5678", role:"coach",  name:"خالد مبارك العسيري"  },
+  { id:"c3",    email:"saad@ghadirsports.sa",   password:"Coach@9012", role:"coach",  name:"سعد الرشيدي"          },
   { id:"par1",  email:"aalghamdi@mail.com", password:"Parent@111", role:"parent", name:"عبدالله الغامدي"      },
   { id:"par2",  email:"saqahtani@mail.com", password:"Parent@222", role:"parent", name:"سعد القحطاني"          },
   { id:"par3",  email:"kzahrani@mail.com",  password:"Parent@333", role:"parent", name:"خالد الزهراني"         },
@@ -1074,23 +1061,23 @@ function useCounter(end, dur = 1600) {
 /* ═══ THEME ═══════════════════════════════════════════ */
 const THEMES = {
   dark: {
-    bg: "#0B0F19", bg2: "#111827", bg3: "#070A13",
-    border: "#1E293B", border2: "#334155",
+    bg: "#080F1E", bg2: "#0E1726", bg3: "#030712",
+    border: "#1A2438", border2: "#2E3F5F",
     text: "#F8FAFC", textMid: "#94A3B8", textDim: "#64748B", textFaint: "#475569",
-    header: "#0B0F19", shadow: "rgba(37,99,235,.15)",
-    cardBg: "#1E293B", inputBg: "#0F172A",
-    purple: "#2563EB", gold: "#FF7C00",
-    gradCard: "linear-gradient(135deg,#1E293B,#0F172A)",
+    header: "#080F1E", shadow: "rgba(239,68,68,.12)",
+    cardBg: "#0E1726", inputBg: "#030712",
+    purple: "#1E40AF", gold: "#EF4444",
+    gradCard: "linear-gradient(135deg,#0E1726,#080F1E)",
     name: "dark",
   },
   light: {
-    bg: "#F8FAFC", bg2: "#FFFFFF", bg3: "#F1F5F9",
-    border: "#E2E8F0", border2: "#CBD5E1",
-    text: "#0F172A", textMid: "#334155", textDim: "#64748B", textFaint: "#94A3B8",
-    header: "#FFFFFF", shadow: "rgba(37,99,235,.08)",
-    cardBg: "#FFFFFF", inputBg: "#F8FAFC",
-    purple: "#1D4ED8", gold: "#EA580C",
-    gradCard: "linear-gradient(135deg,#FFFFFF,#F8FAFC)",
+    bg: "#F0F4F8", bg2: "#FFFFFF", bg3: "#E2E8F0",
+    border: "#D1D5DB", border2: "#9CA3AF",
+    text: "#111827", textMid: "#374151", textDim: "#6B7280", textFaint: "#9CA3AF",
+    header: "#FFFFFF", shadow: "rgba(30,58,138,.08)",
+    cardBg: "#FFFFFF", inputBg: "#F3F4F6",
+    purple: "#1E3A8A", gold: "#DC2626",
+    gradCard: "linear-gradient(135deg,#FFFFFF,#F9FAFB)",
     name: "light",
   },
 };
@@ -1115,14 +1102,14 @@ function Card({ children, style, onClick, hover, t }) {
 function Btn({ children, variant = "primary", onClick, style, small, disabled }) {
   const base = { border: "none", borderRadius: 10, fontFamily: "'Cairo',sans-serif", cursor: disabled ? "not-allowed" : "pointer", fontWeight: 700, transition: "all .2s", fontSize: small ? 12 : 13, padding: small ? "6px 14px" : "10px 20px", opacity: disabled ? .6 : 1, display: "inline-flex", alignItems: "center", gap: 6, ...style };
   const vs = {
-    primary:   { background: "linear-gradient(135deg,#2563EB,#1E40AF)", color: "#fff", boxShadow: "0 4px 14px rgba(37,99,235,.3)" },
-    secondary: { background: "rgba(37,99,235,.1)", color: "#60A5FA", border: "1px solid rgba(37,99,235,.22)" },
+    primary:   { background: "linear-gradient(135deg,#1E40AF,#080F1E)", color: "#fff", boxShadow: "0 4px 14px rgba(30,58,138,.35)", border: "1px solid #1A2438" },
+    secondary: { background: "rgba(30,58,138,.12)", color: "#93C5FD", border: "1px solid rgba(30,58,138,.3)" },
     danger:    { background: "rgba(239,68,68,.1)", color: "#EF4444", border: "1px solid rgba(239,68,68,.22)" },
     success:   { background: "rgba(16,185,129,.1)", color: "#10B981", border: "1px solid rgba(16,185,129,.22)" },
-    gold:      { background: "linear-gradient(135deg,#FF7C00,#EA580C)", color: "#fff", boxShadow: "0 4px 14px rgba(255,124,0,.3)" },
+    gold:      { background: "linear-gradient(135deg,#EF4444,#DC2626)", color: "#fff", boxShadow: "0 4px 14px rgba(239,68,68,.3)" },
     ghost:     { background: "transparent", color: "#94A3B8", border: "1px solid #334155" },
   };
-  return <button onClick={onClick} disabled={disabled} style={{ ...base, ...vs[variant] }}>{children}</button>;
+  return <button onClick={onClick} disabled={disabled} style={{ ...base, ...vs[variant] }}><span style={{ display: "inline-flex", alignItems: "center" }}>{children}</span></button>;
 }
 
 function Input({ label, value, onChange, type = "text", options, placeholder, t }) {
@@ -1150,11 +1137,36 @@ function Avatar({ name, size = 36, color = "#A855F7" }) {
 
 function Footer({ t }) {
   const theme = t || THEMES.dark;
+  const logoInst = theme.name === "dark" ? logoInstitutionWhite : logoInstitutionColor;
   return (
-    <div style={{ textAlign: "center", padding: "20px", marginTop: "auto", borderTop: `1px solid ${theme.border}`, fontSize: 11, color: theme.textDim, opacity: 0.8 }}>
-      <div>تم تطوير نظام إدارة الأكاديميات والنوادي الرياضية <span style={{ color: theme.purple, fontWeight: 700 }}>" مُحْـكَـم (Mohkam) "</span></div>
-      <div style={{ marginTop: 4 }}>بواسطة <span style={{ fontWeight: 600 }}>Badawi for Software Solutions and Marketing</span></div>
-      <div style={{ marginTop: 4, direction: "ltr" }}>+201091089983</div>
+    <div style={{ 
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "space-between", 
+      flexWrap: "wrap", 
+      gap: "16px", 
+      padding: "10px 24px", 
+      marginTop: "auto", 
+      borderTop: `1px solid ${theme.border}`, 
+      fontSize: 11, 
+      color: theme.textDim, 
+      opacity: 0.9 
+    }}>
+      {/* Right Side: Ghadir Rights and Logo */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <img src={logoInst} alt="مؤسسة غدير الرياضية" style={{ height: 95, objectFit: "contain" }} />
+        <span style={{ fontWeight: 700, color: theme.text }}>حقوق الرعاية والتشغيل © مؤسسة غدير الرياضية</span>
+      </div>
+
+      {/* Left Side: Mohkam & Badawi */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, fontSize: 12 }}>
+        <div>
+          تم تطوير النظام بواسطة <span style={{ color: theme.purple, fontWeight: 800 }}>" مُحْـكَـم (Mohkam) "</span>
+        </div>
+        <div style={{ color: theme.textDim, fontSize: 11 }}>
+          برمجيات وتسويق: <span style={{ fontWeight: 700, color: theme.textMid }}>Badawi Software Solutions</span> · <span style={{ direction: "ltr", display: "inline-block", fontWeight: 600 }}>+201091089983</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1295,10 +1307,10 @@ function LoginPage({ onLogin, players = [], coaches = [], t }) {
           
           <div style={{ textAlign: "center", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 140, height: 140, borderRadius: 36, background: "linear-gradient(135deg,rgba(37,99,235,.15),rgba(255,124,0,.05))", border: "1px solid rgba(37,99,235,.25)", marginBottom: 24, boxShadow: "0 10px 40px rgba(37,99,235,.15)", position: "relative" }}>
-              <RoyalLogo size={110} variant="white" />
+              <GhadirLogo size={110} variant="white" />
             </div>
             <h1 style={{ fontSize: 36, fontWeight: 900, color: "#fff", marginBottom: 12, letterSpacing: "-.02em" }}>
-              أكاديمية <span style={{ color: "#FF7C00" }}>رويالز</span> الرياضية
+              أكاديمية <span style={{ color: "#EF4444" }}>غدير</span> الرياضية
             </h1>
             <p style={{ fontSize: 14, color: "#94A3B8", fontWeight: 600, maxWidth: 360, lineHeight: 1.6, marginBottom: 0 }}>
               أكاديمية كرة القدم الأولى لتطوير المواهب الناشئة وإدارتها بنظام إلكتروني متكامل
@@ -1324,7 +1336,7 @@ function LoginPage({ onLogin, players = [], coaches = [], t }) {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#2563EB" strokeWidth="2"/><polyline points="22,6 12,13 2,6" stroke="#2563EB" strokeWidth="2"/></svg>
                 البريد الإلكتروني
               </label>
-              <input id="login-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@royals.sa"
+              <input id="login-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@ghadirsports.sa"
                 onFocus={e => { e.target.style.borderColor = "#2563EB"; e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,.15)"; }} 
                 onBlur={e => { e.target.style.borderColor = "#1E293B"; e.target.style.boxShadow = "none"; }}
                 style={{ width: "100%", background: "rgba(15,23,42,.4)", border: "1.5px solid #1E293B", borderRadius: 12, padding: "14px 18px", color: "#F8FAFC", fontSize: 14, outline: "none", transition: "all .25s" }} />
@@ -1387,10 +1399,10 @@ function LoginPage({ onLogin, players = [], coaches = [], t }) {
         {/* Logo & Title */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 120, height: 120, borderRadius: 32, background: "linear-gradient(135deg,rgba(37,99,235,.12),rgba(255,124,0,.04))", border: "1px solid rgba(37,99,235,.2)", marginBottom: 18, boxShadow: "0 0 50px rgba(37,99,235,.1)", position: "relative" }}>
-            <RoyalLogo size={90} variant="white" />
+            <GhadirLogo size={90} variant="white" />
           </div>
           <h1 style={{ fontSize: 34, fontWeight: 900, color: "#fff", marginBottom: 8 }}>
-            أكاديمية <span style={{ color: "#FF7C00" }}>رويالز</span> الرياضية
+            أكاديمية <span style={{ color: "#EF4444" }}>غدير</span> الرياضية
           </h1>
           <p style={{ fontSize: 13, color: "#94A3B8", fontWeight: 600 }}>أكاديمية كرة القدم — نظام الإدارة المتكامل</p>
         </div>
@@ -1457,7 +1469,7 @@ function Shell({ title, subtitle, color, icon, tabs, activeTab, setActiveTab, on
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: theme.bg }}>
       <header style={{ background: theme.header, borderBottom: `1px solid ${theme.border}`, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 66, flexShrink: 0, position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <RoyalLogo size={38} variant={theme.name === "dark" ? "white" : "blue"} />
+          <GhadirLogo size={52} variant={theme.name === "dark" ? "white" : "main"} />
           <div>
             <div style={{ fontWeight: 800, fontSize: 14, color: theme.text }}>{title}</div>
             <div style={{ fontSize: 11, color: theme.textDim }}>{subtitle}</div>
@@ -1513,38 +1525,38 @@ function Shell({ title, subtitle, color, icon, tabs, activeTab, setActiveTab, on
 /* ═══ ROOT APP ════════════════════════════════════════ */
 export default function App() {
   const [user, setUser]         = useState(() => {
-    const saved = localStorage.getItem('royals_logged_user');
+    const saved = localStorage.getItem('ghadir_logged_user');
     if (!saved) return null;
     try {
       const parsed = JSON.parse(saved);
       if (parsed && (parsed.role === 'admin' || parsed.role === 'super_admin')) {
-        if (parsed.password !== "Royal@2026!" || parsed.email !== "admin@royalsports.sa") {
-          localStorage.removeItem('royals_logged_user');
+        if (parsed.password !== "Ghadir@2026!" || parsed.email !== "admin@ghadirsports.sa") {
+          localStorage.removeItem('ghadir_logged_user');
           return null;
         }
       }
       return parsed;
     } catch(e) {
-      localStorage.removeItem('royals_logged_user');
+      localStorage.removeItem('ghadir_logged_user');
       return null;
     }
   });
-  const [attendance, setAttendance] = useState(() => JSON.parse(localStorage.getItem('royals_attendance') || '[]'));
-  const [evals, setEvals] = useState(() => JSON.parse(localStorage.getItem('royals_evals') || '[]'));
-  const [messages, setMessages] = useState(() => JSON.parse(localStorage.getItem('royals_messages') || '[]'));
-  const [prices, setPrices] = useState(() => JSON.parse(localStorage.getItem('royals_prices') || JSON.stringify(PRICE_LIST)));
-  const [trainings, setTrainings] = useState(() => JSON.parse(localStorage.getItem('royals_trainings') || '[]'));
-  const [coachesAttendance, setCoachesAttendance] = useState(() => JSON.parse(localStorage.getItem('royals_coachesAttendance') || '[]'));
+  const [attendance, setAttendance] = useState(() => JSON.parse(localStorage.getItem('ghadir_attendance') || '[]'));
+  const [evals, setEvals] = useState(() => JSON.parse(localStorage.getItem('ghadir_evals') || '[]'));
+  const [messages, setMessages] = useState(() => JSON.parse(localStorage.getItem('ghadir_messages') || '[]'));
+  const [prices, setPrices] = useState(() => JSON.parse(localStorage.getItem('ghadir_prices') || JSON.stringify(PRICE_LIST)));
+  const [trainings, setTrainings] = useState(() => JSON.parse(localStorage.getItem('ghadir_trainings') || '[]'));
+  const [coachesAttendance, setCoachesAttendance] = useState(() => JSON.parse(localStorage.getItem('ghadir_coachesAttendance') || '[]'));
 
-  const [groups, setGroups] = useState(() => JSON.parse(localStorage.getItem('royals_groups') || '[]'));
-  const [coaches, setCoaches] = useState(() => JSON.parse(localStorage.getItem('royals_coaches') || '[]'));
-  const [players, setPlayers] = useState(() => JSON.parse(localStorage.getItem('royals_players') || '[]'));
-  const [parents, setParents] = useState(() => JSON.parse(localStorage.getItem('royals_parents') || '[]'));
-  const [payments, setPayments] = useState(() => JSON.parse(localStorage.getItem('royals_payments') || '[]'));
-  const [theme, setTheme] = useState(() => localStorage.getItem('royals_theme') || "dark");
+  const [groups, setGroups] = useState(() => JSON.parse(localStorage.getItem('ghadir_groups') || '[]'));
+  const [coaches, setCoaches] = useState(() => JSON.parse(localStorage.getItem('ghadir_coaches') || '[]'));
+  const [players, setPlayers] = useState(() => JSON.parse(localStorage.getItem('ghadir_players') || '[]'));
+  const [parents, setParents] = useState(() => JSON.parse(localStorage.getItem('ghadir_parents') || '[]'));
+  const [payments, setPayments] = useState(() => JSON.parse(localStorage.getItem('ghadir_payments') || '[]'));
+  const [theme, setTheme] = useState(() => localStorage.getItem('ghadir_theme') || "dark");
 
   const [syncStatus, setSyncStatus] = useState("synced"); // 'synced', 'syncing', 'error'
-  const [lastUpdate, setLastUpdateState] = useState(() => parseInt(localStorage.getItem('royals_last_update') || '0'));
+  const [lastUpdate, setLastUpdateState] = useState(() => parseInt(localStorage.getItem('ghadir_last_update') || '0'));
   const lastLocalWriteRef = useRef(0);
   const pendingSyncsRef = useRef(0);
   const markLocalWrite = () => {
@@ -1554,7 +1566,7 @@ export default function App() {
   const setLastUpdate = (val) => {
     const time = val !== undefined ? val : Date.now();
     setLastUpdateState(time);
-    localStorage.setItem('royals_last_update', String(time));
+    localStorage.setItem('ghadir_last_update', String(time));
   };
 
   const syncWithAPI = async (table, item, isDeleted = false) => {
@@ -1605,9 +1617,40 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (user) localStorage.setItem('royals_logged_user', JSON.stringify(user));
-    else localStorage.removeItem('royals_logged_user');
+    if (user) localStorage.setItem('ghadir_logged_user', JSON.stringify(user));
+    else localStorage.removeItem('ghadir_logged_user');
   }, [user]);
+
+  // Self-healing migration for legacy local data strings
+  useEffect(() => {
+    const migrateItem = (item) => {
+      let email = item.email || "";
+      let password = item.password || "";
+      let changed = false;
+      if (email.includes("royals") || email.includes("royal")) {
+        email = email.replace(/royals_/g, "ghadir_").replace(/royal_/g, "ghadir_").replace(/@royals\.sa/g, "@ghadirsports.sa").replace(/@royalsports\.sa/g, "@ghadirsports.sa").replace(/@royal\.sa/g, "@ghadirsports.sa").replace(/@royal-club\.sa/g, "@ghadirsports.sa");
+        changed = true;
+      }
+      if (password.includes("royals") || password.includes("Royals") || password.includes("Royal") || password.includes("royal")) {
+        password = password.replace(/royals_/g, "ghadir_").replace(/royal_/g, "ghadir_").replace(/Royals@/g, "Ghadir@").replace(/Royal@/g, "Ghadir@");
+        changed = true;
+      }
+      return changed ? { ...item, email, password } : item;
+    };
+
+    setPlayers(prev => {
+      const next = prev.map(migrateItem);
+      return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
+    });
+    setCoaches(prev => {
+      const next = prev.map(migrateItem);
+      return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
+    });
+    setParents(prev => {
+      const next = prev.map(migrateItem);
+      return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
+    });
+  }, []);
 
   // Fetch from API if configured (with automatic background polling every 6s)
   useEffect(() => {
@@ -1626,20 +1669,37 @@ export default function App() {
         if (Date.now() - lastLocalWriteRef.current < 8000 || pendingSyncsRef.current > 0) {
           return;
         }
+
+        const migrateItem = (item) => {
+          let email = item.email || "";
+          let password = item.password || "";
+          let changed = false;
+          if (email.includes("royals") || email.includes("royal")) {
+            email = email.replace(/royals_/g, "ghadir_").replace(/royal_/g, "ghadir_").replace(/@royals\.sa/g, "@ghadirsports.sa").replace(/@royalsports\.sa/g, "@ghadirsports.sa").replace(/@royal\.sa/g, "@ghadirsports.sa");
+            changed = true;
+          }
+          if (password.includes("royals") || password.includes("Royals") || password.includes("Royal") || password.includes("royal")) {
+            password = password.replace(/royals_/g, "ghadir_").replace(/royal_/g, "ghadir_").replace(/Royals@/g, "Ghadir@").replace(/Royal@/g, "Ghadir@");
+            changed = true;
+          }
+          return changed ? { ...item, email, password } : item;
+        };
+
         if (data.players) {
           // Auto-repair missing logins/data for display
           const repaired = data.players.map(p => {
-            if (p.email && p.password) return p;
-            const phone = p.phone || "0500000000";
+            const migrated = migrateItem(p);
+            if (migrated.email && migrated.password) return migrated;
+            const phone = migrated.phone || "0500000000";
             return { 
-              ...p, 
-              email: p.email || `royals_${phone}@royals.sa`,
-              password: p.password || `royals_${phone.slice(-4)}`
+              ...migrated, 
+              email: migrated.email || `ghadir_${phone}@ghadirsports.sa`,
+              password: migrated.password || `ghadir_${phone.slice(-4)}`
             };
           });
           setPlayers(repaired);
         }
-        if (data.coaches) setCoaches(data.coaches);
+        if (data.coaches) setCoaches(data.coaches.map(migrateItem));
         if (data.groups) setGroups(data.groups);
         if (data.payments) setPayments(data.payments);
         if (data.attendance) setAttendance(data.attendance);
@@ -1647,7 +1707,7 @@ export default function App() {
         if (data.evals) setEvals(data.evals);
         if (data.messages) setMessages(data.messages);
         if (data.trainings) setTrainings(data.trainings);
-        if (data.parents) setParents(data.parents);
+        if (data.parents) setParents(data.parents.map(migrateItem));
       } catch (e) {
         console.error("API Fetch Error:", e);
       }
@@ -1660,18 +1720,18 @@ export default function App() {
   }, [user, syncStatus]);
 
   useEffect(() => {
-    localStorage.setItem('royals_players', JSON.stringify(players));
-    localStorage.setItem('royals_coaches', JSON.stringify(coaches));
-    localStorage.setItem('royals_groups', JSON.stringify(groups));
-    localStorage.setItem('royals_parents', JSON.stringify(parents));
-    localStorage.setItem('royals_payments', JSON.stringify(payments));
-    localStorage.setItem('royals_attendance', JSON.stringify(attendance));
-    localStorage.setItem('royals_coachesAttendance', JSON.stringify(coachesAttendance));
-    localStorage.setItem('royals_evals', JSON.stringify(evals));
-    localStorage.setItem('royals_messages', JSON.stringify(messages));
-    localStorage.setItem('royals_prices', JSON.stringify(prices));
-    localStorage.setItem('royals_trainings', JSON.stringify(trainings));
-    localStorage.setItem('royals_theme', theme);
+    localStorage.setItem('ghadir_players', JSON.stringify(players));
+    localStorage.setItem('ghadir_coaches', JSON.stringify(coaches));
+    localStorage.setItem('ghadir_groups', JSON.stringify(groups));
+    localStorage.setItem('ghadir_parents', JSON.stringify(parents));
+    localStorage.setItem('ghadir_payments', JSON.stringify(payments));
+    localStorage.setItem('ghadir_attendance', JSON.stringify(attendance));
+    localStorage.setItem('ghadir_coachesAttendance', JSON.stringify(coachesAttendance));
+    localStorage.setItem('ghadir_evals', JSON.stringify(evals));
+    localStorage.setItem('ghadir_messages', JSON.stringify(messages));
+    localStorage.setItem('ghadir_prices', JSON.stringify(prices));
+    localStorage.setItem('ghadir_trainings', JSON.stringify(trainings));
+    localStorage.setItem('ghadir_theme', theme);
   }, [players, coaches, groups, parents, payments, attendance, coachesAttendance, evals, messages, prices, trainings, theme]);
 
   const t = THEMES[theme];
@@ -1752,7 +1812,7 @@ export default function App() {
     },
     parents: (parents && parents.length > 0) ? parents : (players || []).reduce((acc, p) => {
       if (p && p.parentId && !acc.find(x => String(x.id) === String(p.parentId))) {
-        acc.push({ id: p.parentId, name: `ولي أمر ${p.name}`, phone: p.phone, email: p.email });
+        acc.push({ id: p.parentId, name: `ولي أمر ${p.name}`, phone: p.phone, email: p.email, password: p.password });
       }
       return acc;
     }, []),
@@ -1892,7 +1952,7 @@ export default function App() {
     t,
     forceRefresh: () => {
       setLastUpdate(0); // Clear lock
-      localStorage.setItem('royals_last_update', '0');
+      localStorage.setItem('ghadir_last_update', '0');
       window.location.reload(); 
     }
   };
@@ -1957,13 +2017,13 @@ function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, p
     { id: "messages",     icon: "messages",     label: "الرسائل",      badge: messages.filter(m => m.to === "admin" && !m.read).length || undefined },
   ];
   return (
-    <Shell title="لوحة الإدارة" subtitle="أكاديمية رويالز الرياضية" color="#2563EB" icon="dashboard" tabs={tabs} activeTab={tab} setActiveTab={setTab} onLogout={onLogout} badge="مدير عام" user={user} t={t} syncStatus={syncStatus}>
+    <Shell title="لوحة الإدارة" subtitle="أكاديمية غدير الرياضية" color="#2563EB" icon="dashboard" tabs={tabs} activeTab={tab} setActiveTab={setTab} onLogout={onLogout} badge="مدير عام" user={user} t={t} syncStatus={syncStatus}>
       {tab === "overview"  && <AdminOverview players={players} coaches={coaches} groups={groups} payments={payments} attendance={attendance} trainings={trainings} t={t} parents={parents} messages={messages} setMessages={setMessages} setTab={setTab} setSelectedPlayerId={setSelectedPlayerId} />}
       {tab === "teams"     && <AdminTeams groups={groups} setGroups={setGroups} coaches={coaches} players={players} t={t} />}
       {tab === "attendance" && <AdminAttendance groups={groups} players={players} coaches={coaches} attendance={attendance} setAttendance={setAttendance} coachesAttendance={coachesAttendance} setCoachesAttendance={setCoachesAttendance} t={t} payments={payments} trainings={trainings} />}
       {tab === "coaches"   && <AdminCoaches coaches={coaches} setCoaches={setCoaches} groups={groups} players={players} payments={payments} t={t} />}
       {tab === "players"   && <AdminPlayers players={players} setPlayers={setPlayers} groups={groups} parents={parents} evals={evals} coaches={coaches} t={t} trainings={trainings} attendance={attendance} payments={payments} selectedPlayerId={selectedPlayerId} setSelectedPlayerId={setSelectedPlayerId} />}
-      {tab === "payments"  && <AdminPayments payments={payments} setPayments={setPayments} players={players} coaches={coaches} parents={parents} prices={prices} t={t} />}
+      {tab === "payments"  && <AdminPayments payments={payments} setPayments={setPayments} players={players} coaches={coaches} parents={parents} prices={prices} t={t} attendance={attendance} setAttendance={setAttendance} trainings={trainings} />}
       {tab === "prices"    && <AdminPrices prices={prices} setPrices={setPrices} t={t} />}
       {tab === "schedule"  && <AdminTrainings trainings={trainings} setTrainings={setTrainings} groups={groups} coaches={coaches} t={t} />}
       {tab === "reports"   && <AdminReports players={players} coaches={coaches} groups={groups} payments={payments} attendance={attendance} evals={evals} t={t} />}
@@ -1987,10 +2047,10 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
     const groupName = groups.find(g => g.id === p.groupId)?.name || "بدون مجموعة";
     
     if (type === "nearing_expiry") {
-      return `السلام عليكم ورحمة الله وبركاته،\n\nنحيطكم علماً بأن اشتراك اللاعب البطل *(${p.name})* شارف على الانتهاء.\n\n*تفاصيل الدورة التدريبية:*\n• المجموعة: *${groupName}*\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة: *${endDate}*\n\nيرجى سداد اشتراك الدورة الجديدة لضمان استمرارية تدريب ابنكم البطل دون انقطاع. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية رويالز الرياضية.`;
+      return `السلام عليكم ورحمة الله وبركاته،\n\nنحيطكم علماً بأن اشتراك اللاعب البطل *(${p.name})* شارف على الانتهاء.\n\n*تفاصيل الدورة التدريبية:*\n• المجموعة: *${groupName}*\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة: *${endDate}*\n\nيرجى سداد اشتراك الدورة الجديدة لضمان استمرارية تدريب ابنكم البطل دون انقطاع. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية غدير الرياضية.`;
     } else {
       const statusLabel = sub.isUnpaid ? "غير مسدد" : "منتهي";
-      return `السلام عليكم ورحمة الله وبركاته،\n\nنود تذكيركم بلطف بضرورة سداد اشتراك اللاعب البطل *(${p.name})* في أكاديمية رويالز الرياضية.\n\n*تفاصيل الدورة التدريبية:*\n• المجموعة: *${groupName}*\n• حالة الاشتراك: *${statusLabel}*\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة: *${endDate}*\n\nيرجى سداد الرسوم المستحقة لتجديد اشتراك اللاعب لضمان استمرارية التدريب. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية رويالز الرياضية.`;
+      return `السلام عليكم ورحمة الله وبركاته،\n\nنود تذكيركم بلطف بضرورة سداد اشتراك اللاعب البطل *(${p.name})* في أكاديمية غدير الرياضية.\n\n*تفاصيل الدورة التدريبية:*\n• المجموعة: *${groupName}*\n• حالة الاشتراك: *${statusLabel}*\n• تاريخ بدء الدورة: *${startDate}*\n• تاريخ انتهاء الدورة: *${endDate}*\n\nيرجى سداد الرسوم المستحقة لتجديد اشتراك اللاعب لضمان استمرارية التدريب. شاكرين ومقدرين حسن تعاونكم معنا.\n\n— إدارة أكاديمية غدير الرياضية.`;
     }
   };
 
@@ -2087,7 +2147,7 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
     const pos = p.position || "غير محدد";
     posCounts[pos] = (posCounts[pos] || 0) + 1;
   });
-  const posColors = ["#2563EB", "#FF7C00", "#10B981", "#EF4444", "#06B6D4", "#F59E0B", "#8B5CF6"];
+  const posColors = ["#2563EB", "#EF4444", "#10B981", "#EF4444", "#06B6D4", "#F59E0B", "#8B5CF6"];
   const dynamicPosData = Object.entries(posCounts).map(([name, value], i) => ({
     name,
     value,
@@ -2165,7 +2225,7 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
   // WhatsApp Reminder copy function
   const copyReminder = (playerName) => {
     const monthName = CUR_MONTH.split(" ")[0];
-    const msg = `السلام عليكم ورحمة الله وبركاته، نود تذكيركم بلطف بموعد سداد اشتراك شهر ${monthName} للاعب البطل (${playerName}) في أكاديمية رويالز الرياضية. شاكرين ومقدرين حسن تعاونكم معنا.\n— إدارة أكاديمية رويالز الرياضية.`;
+    const msg = `السلام عليكم ورحمة الله وبركاته، نود تذكيركم بلطف بموعد سداد اشتراك شهر ${monthName} للاعب البطل (${playerName}) في أكاديمية غدير الرياضية. شاكرين ومقرارين حسن تعاونكم معنا.\n— إدارة أكاديمية غدير الرياضية.`;
     navigator.clipboard.writeText(msg).then(() => {
       setToastMsg(`تم نسخ رسالة التذكير للاعب ${playerName} بنجاح!`);
       setTimeout(() => setToastMsg(null), 3000);
@@ -2245,7 +2305,7 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, paddingBottom: 20, borderBottom: `1px solid ${t.border}` }}>
             <ProgressCircle percentage={activeRate} color="#2563EB" label="نسبة النشاط" />
             <ProgressCircle percentage={collectionRate} color="#10B981" label="نسبة التحصيل" />
-            <ProgressCircle percentage={attendanceRate} color="#FF7C00" label="معدل الانضباط" />
+            <ProgressCircle percentage={attendanceRate} color="#EF4444" label="معدل الانضباط" />
           </div>
 
           {/* Simple Metrics List */}
@@ -2276,10 +2336,10 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <AnimIcon type="chart" size={16} color="#FF7C00" />
+                <AnimIcon type="chart" size={16} color="#EF4444" />
                 <span style={{ fontSize: 12, color: t.textDim, fontWeight: 700 }}>إجمالي الإيرادات</span>
               </div>
-              <span style={{ fontSize: 16, fontWeight: 900, color: "#FF7C00" }}>{fmtMoney(total)}</span>
+              <span style={{ fontSize: 16, fontWeight: 900, color: "#EF4444" }}>{fmtMoney(total)}</span>
             </div>
           </div>
         </Card>
@@ -2337,7 +2397,7 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 80%, rgba(37,99,235,.05) 0%, transparent 50%)", pointerEvents: "none" }} />
           
           <div style={{ position: "relative", zIndex: 1, maxWidth: "70%" }}>
-            <h2 style={{ fontSize: 20, fontWeight: 900, color: t.name === "dark" ? "#FFF" : "#0F172A", marginBottom: 6 }}>لوحة التحكم الإدارية — أكاديمية رويالز الرياضية</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: t.name === "dark" ? "#FFF" : "#0F172A", marginBottom: 6 }}>لوحة التحكم الإدارية — أكاديمية غدير الرياضية</h2>
             <p style={{ fontSize: 12, color: t.textMid, lineHeight: 1.6, margin: 0 }}>مرحباً بك مجدداً. يمكنك متابعة كافة البيانات والعمليات المالية والرياضية للأكاديمية والاطلاع على المخططات التحليلية المحدثة مباشرة.</p>
           </div>
 
@@ -2657,7 +2717,7 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
           {/* Coach Revenues & Group Distribution */}
           <Card t={t} style={{ padding: 22 }}>
             <div style={{ fontWeight: 800, fontSize: 13, color: t.text, marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-              <span><AnimIcon type="trophy" size={14} color="#FF7C00" /></span>
+              <span><AnimIcon type="trophy" size={14} color="#EF4444" /></span>
               <span>عائدات وأداء الكادر التدريبي</span>
             </div>
             <div style={{ fontSize: 11, color: t.textDim, marginBottom: 14 }}>الإيرادات المحصلة من مجموعات المدربين والرواتب</div>
@@ -2764,7 +2824,7 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
           <Card t={t} style={{ padding: 24 }}>
             <div style={{ textAlign: "center", marginBottom: 16 }}>
               <div style={{ width: 64, height: 64, borderRadius: 18, background: `linear-gradient(135deg,${g.color},${g.color}88)`, display: "grid", placeItems: "center", fontSize: 26, color: "#fff", margin: "0 auto 12px", boxShadow: `0 0 20px ${g.color}40` }}>
-                <RoyalLogo size={44} />
+                <GhadirLogo size={44} />
               </div>
               <div style={{ fontWeight: 800, fontSize: 18, color: g.color, marginBottom: 4 }}>{g.name}</div>
               <div style={{ fontSize: 12, color: t.textDim }}>{gPlayers.length} لاعب مسجل</div>
@@ -2863,7 +2923,7 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
                     <div style={{ fontSize: 20, fontWeight: 900, color: g.color, marginBottom: 4 }}>{g.name}</div>
                   </div>
                   <div style={{ width: 46, height: 46, borderRadius: 14, background: `${g.color}14`, border: `1px solid ${g.color}30`, display: "grid", placeItems: "center" }}>
-                    <RoyalLogo size={32} />
+                    <GhadirLogo size={32} />
                   </div>
                 </div>
               </div>
@@ -2928,8 +2988,8 @@ function AdminCoaches({ coaches, setCoaches, groups, players, payments, t }) {
     if (!form.name.trim()) return;
     if (modal === "add") {
       const id = `c${Date.now()}`;
-      const email = `${form.name.split(" ")[0].toLowerCase()}${Math.floor(Math.random()*1000)}@royals.sa`;
-      const password = `Royals@${Math.floor(Math.random()*9000)+1000}`;
+      const email = `${form.name.split(" ")[0].toLowerCase()}${Math.floor(Math.random()*1000)}@ghadirsports.sa`;
+      const password = `Ghadir@${Math.floor(Math.random()*9000)+1000}`;
       setCoaches(c => [...c, { ...form, id, email, password, joined: getLocalDateString(new Date()) }]);
     }
     else setCoaches(c => c.map(x => x.id === form.id ? form : x));
@@ -3222,7 +3282,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
               ["تاريخ التسجيل", formatArabicDate(p.joinDate)],
               ["تجديد الاشتراك", latestRenewalDate],
               ["إيميل الدخول", par?.email || p.email || "—"],
-              ["كلمة المرور", par?.password || p.password || (p.phone ? `royals_${p.phone.slice(-4)}` : "كلمة مرور ولي الأمر الحالية")]
+              ["كلمة المرور", par?.password || p.password || (p.phone ? `ghadir_${p.phone.slice(-4)}` : "كلمة مرور ولي الأمر الحالية")]
             ].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${t.border}`, fontSize: 12 }}>
                 <span style={{ color: t.textDim }}>{k}</span>
@@ -3603,8 +3663,8 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
               const resolvedParentId = (form.parentId && form.parentId !== "__new__")
                 ? form.parentId
                 : `par_${phone}`;
-              const generatedEmail = `royals_${phone}@royals.sa`;
-              const generatedPass  = `royals_${phone.slice(-4)}`;
+              const generatedEmail = `ghadir_${phone}@ghadirsports.sa`;
+              const generatedPass  = `ghadir_${phone.slice(-4)}`;
               setPlayers(ps => [...ps, { 
                 ...form, 
                 id: `p${Date.now()}`, 
@@ -3668,7 +3728,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
 /* ══════════════════════════════════════════════════════════
    INVOICE MODAL — A4 Arabic Invoice: Logo, QR, Credentials, PDF
 ══════════════════════════════════════════════════════════ */
-const ACADEMY_WEBSITE = "https://royal-club.vercel.app/";
+const ACADEMY_WEBSITE = "https://ghadir-club.vercel.app/";
 
 function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
   const invoiceRef = useRef(null);
@@ -3722,9 +3782,9 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
 
     const shareScript = mode === 'share' ? `
       async function doShare() {
-        const title = 'فاتورة مشترك — أكاديمية رويالز الرياضية';
+        const title = 'فاتورة مشترك — أكاديمية غدير الرياضية';
         const text = [
-          'فاتورة مشترك — أكاديمية رويالز الرياضية',
+          'فاتورة مشترك — أكاديمية غدير الرياضية',
           'اللاعب: ${payment.playerName}',
           'الشهر: ${payment.month}',
           'المجموع: ${fmtMoney(totalAmount)}',
@@ -3766,7 +3826,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
       font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 800;
       display: inline-flex; align-items: center; gap: 6px;
     }
-    .btn-gold { background: #FF7C00; color: #fff; }
+    .btn-gold { background: #EF4444; color: #fff; }
     .btn-ghost { background: rgba(255,255,255,0.15); color: #fff; }
     .invoice-page {
       max-width: 794px; margin: 20px auto; background: #fff;
@@ -3821,7 +3881,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button onClick={handleShare} style={{
               padding: '8px 18px', borderRadius: 8, border: 'none',
-              background: '#FF7C00', color: '#fff',
+              background: '#EF4444', color: '#fff',
               fontSize: 12, fontWeight: 800, cursor: 'pointer',
               fontFamily: "'Cairo',sans-serif", display: 'flex', alignItems: 'center', gap: 6
             }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="share" size={12} color="currentColor" /> مشاركة</span></button>
@@ -3862,8 +3922,8 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
             </div>
             {/* Academy name + single logo */}
             <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <img src={logoMain} alt="أكاديمية رويالز" style={{ width: 70, height: 70, objectFit: 'contain' }}/>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#1a1a2e', letterSpacing: '-0.3px', lineHeight: 1.2 }}>أكاديمية رويالز الرياضية</div>
+              <img src={logoMain} alt="أكاديمية غدير" style={{ width: 70, height: 70, objectFit: 'contain' }}/>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#1a1a2e', letterSpacing: '-0.3px', lineHeight: 1.2 }}>أكاديمية غدير الرياضية</div>
               <div style={{ fontSize: 12, color: '#777' }}>أكاديمية كرة القدم</div>
             </div>
             {/* Empty spacer to keep layout balanced */}
@@ -3871,7 +3931,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
           </div>
 
           {/* Divider */}
-          <div style={{ margin: '18px 40px 0', height: 3, background: 'linear-gradient(90deg,#1E40AF,#2563EB,#FF7C00)' }}/>
+          <div style={{ margin: '18px 40px 0', height: 3, background: 'linear-gradient(90deg,#1E40AF,#2563EB,#EF4444)' }}/>
 
           {/* ── Title Bar ── */}
           <div style={{ background: 'linear-gradient(135deg,#1E40AF,#2563EB)', margin: '0 0 20px', padding: '12px 40px', textAlign: 'center' }}>
@@ -3953,7 +4013,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
           {/* ── Total Bar ── */}
           <div style={{ margin: '0 40px 18px', background: 'linear-gradient(135deg,#1E40AF,#2563EB)', borderRadius: 10, padding: '16px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ color: '#E2E8F0', fontSize: 14, fontWeight: 800 }}>إجمالي مبلغ الاشتراك المستحق</div>
-            <div style={{ color: '#FF7C00', fontSize: 20, fontWeight: 900 }}>{fmtMoney(totalAmount)}</div>
+            <div style={{ color: '#EF4444', fontSize: 20, fontWeight: 900 }}>{fmtMoney(totalAmount)}</div>
           </div>
 
           {/* ── Terms ── */}
@@ -4015,8 +4075,11 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
           {/* ── Footer ── */}
           <div style={{ borderTop: '1px solid #eee', padding: '12px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: 10, color: '#bbb' }}>تم إنشاء هذه الفاتورة إلكترونياً</div>
-            <div style={{ fontSize: 10, color: '#888', fontWeight: 600 }}>أكاديمية رويالز الرياضية · أكاديمية كرة القدم</div>
-            <img src={logoIcon} alt="" style={{ width: 28, height: 28, objectFit: 'contain', opacity: 0.4 }}/>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 9.5, color: '#888', fontWeight: 600 }}>حقوق الرعاية: مؤسسة غدير الرياضية</span>
+              <img src={logoInstitutionColor} alt="مؤسسة غدير الرياضية" style={{ height: 52, objectFit: 'contain' }}/>
+            </div>
+            <div style={{ fontSize: 10, color: '#888', fontWeight: 600 }}>أكاديمية غدير الرياضية · أكاديمية كرة القدم</div>
           </div>
         </div>
       </div>
@@ -4024,7 +4087,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
   );
 }
 
-function AdminPayments({ payments, setPayments, players, coaches, parents, prices, t }) {
+function AdminPayments({ payments, setPayments, players, coaches, parents, prices, t, attendance, setAttendance, trainings }) {
   const [modal, setModal] = useState(false);
   const [invoicePay, setInvoicePay] = useState(null);
   const [editModalPay, setEditModalPay] = useState(null);
@@ -4076,6 +4139,90 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
         note: form.note
       };
     });
+
+    // ── Generate past attendance automatically for subscription payments ──
+    if (hasSubscription && player && player.groupId && trainings && setAttendance) {
+      const paymentDateStr = toLocalDateStr(form.date);
+      const todayStr = getLocalDateString(new Date());
+      
+      if (paymentDateStr < todayStr) {
+        const ARABIC_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+        const groupTrainings = (trainings || []).filter(tr => tr.groupId === player.groupId);
+
+        // Find all group training days between paymentDateStr and todayStr (strictly before today)
+        const parts = paymentDateStr.split("-");
+        let current = new Date(parts[0], parts[1] - 1, parts[2]);
+        current.setHours(0, 0, 0, 0);
+
+        const todayObj = new Date();
+        todayObj.setHours(0, 0, 0, 0);
+
+        const pastTrainingDates = [];
+        let safety = 0;
+        
+        while (current < todayObj && safety < 1000) {
+          safety++;
+          const dateStr = getLocalDateString(current);
+          
+          let isTrainingDay = false;
+          for (const tr of groupTrainings) {
+            if (tr.isRecurring === false || tr.isRecurring === undefined) {
+              if (tr.date && compareDates(tr.date, dateStr)) {
+                isTrainingDay = true;
+                break;
+              }
+            } else {
+              const dayName = ARABIC_DAYS[current.getDay()];
+              if (tr.days && tr.days.includes(dayName)) {
+                isTrainingDay = true;
+                break;
+              }
+            }
+          }
+
+          if (isTrainingDay) {
+            pastTrainingDates.push(dateStr);
+          }
+          current.setDate(current.getDate() + 1);
+        }
+
+        // Generate or update attendance records for each past training date
+        if (pastTrainingDates.length > 0) {
+          setAttendance(prev => {
+            let nextAttendance = [...prev];
+            pastTrainingDates.forEach((dStr, idx) => {
+              const existingIdx = nextAttendance.findIndex(a => compareDates(a.date, dStr) && a.groupId === player.groupId);
+              if (existingIdx !== -1) {
+                const existingRec = nextAttendance[existingIdx];
+                const updatedRecords = {
+                  ...existingRec.records,
+                  [player.id]: "حاضر"
+                };
+                nextAttendance[existingIdx] = {
+                  ...existingRec,
+                  records: updatedRecords
+                };
+              } else {
+                const records = { [player.id]: "حاضر" };
+                // Also add other active players of this group so the record is fully populated
+                players.filter(p => p.groupId === player.groupId && p.id !== player.id).forEach(p => {
+                  records[p.id] = "حاضر";
+                });
+                
+                const newAtt = {
+                  id: `att${batchTimestamp}-${idx}`,
+                  date: dStr,
+                  groupId: player.groupId,
+                  records: records
+                };
+                nextAttendance.push(newAtt);
+              }
+            });
+            return nextAttendance;
+          });
+        }
+      }
+    }
 
     setPayments(ps => [...ps, ...newPayments]);
     setModal(false);
@@ -4298,13 +4445,25 @@ function AdminPrices({ prices, setPrices, t }) {
       const res = await fetch(`${API_URL}/api/reset-database`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret: "RoyalsLaunch2026" })
+        body: JSON.stringify({ secret: "GhadirLaunch2026" })
       });
       
       const data = await res.json();
       if (res.ok && data.success) {
         alert("تم إعادة تهيئة النظام وتصفير البيانات بنجاح!");
         // Clear all cached local data keys to prevent dirty sync
+        localStorage.removeItem('ghadir_players');
+        localStorage.removeItem('ghadir_coaches');
+        localStorage.removeItem('ghadir_groups');
+        localStorage.removeItem('ghadir_parents');
+        localStorage.removeItem('ghadir_payments');
+        localStorage.removeItem('ghadir_attendance');
+        localStorage.removeItem('ghadir_coachesAttendance');
+        localStorage.removeItem('ghadir_evals');
+        localStorage.removeItem('ghadir_messages');
+        localStorage.removeItem('ghadir_trainings');
+        
+        // Also clear legacy keys
         localStorage.removeItem('royals_players');
         localStorage.removeItem('royals_coaches');
         localStorage.removeItem('royals_groups');
@@ -4688,7 +4847,7 @@ function AdminReports({ players, coaches, groups, payments, attendance, evals, t
         wsRevenue["!cols"] = [{ wch: 20 }, { wch: 14 }, { wch: 18 }];
         XLSX.utils.book_append_sheet(wb, wsRevenue, "الإيرادات حسب النوع");
 
-        const fileName = `تقرير_أكاديمية_رويالز_${periodLabel.replace(/ /g, "_")}.xlsx`;
+        const fileName = `تقرير_أكاديمية_غدير_${periodLabel.replace(/ /g, "_")}.xlsx`;
         XLSX.writeFile(wb, fileName);
         setLastExport({ time: new Date().toLocaleTimeString("ar-SA"), period: periodLabel, fileName });
       } catch (e) {
@@ -4852,7 +5011,7 @@ function AdminReports({ players, coaches, groups, payments, attendance, evals, t
           <div style={{ fontSize: 10, color: t.textDim, lineHeight: 1.6 }}>سجل تفصيلي لكل دفعة مع النوع والمبلغ والمستلم</div>
         </Card>
         <Card t={t} style={{ padding: 18, textAlign: "center" }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}><AnimIcon type="chart" size={28} color="#FF7C00" /></div>
+          <div style={{ fontSize: 28, marginBottom: 8 }}><AnimIcon type="chart" size={28} color="#EF4444" /></div>
           <div style={{ fontSize: 12, fontWeight: 700, color: t.text, marginBottom: 4 }}>صفحة الحضور والمدربين</div>
           <div style={{ fontSize: 10, color: t.textDim, lineHeight: 1.6 }}>ملخص حضور كل لاعب + أداء المدربين والمبالغ المحصّلة</div>
         </Card>
@@ -5125,7 +5284,7 @@ function CoachHome({ coach, group, groups, myPlayers, attendance, evals, trainin
           {/* Progress Circles Row */}
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, paddingBottom: 20, borderBottom: `1px solid ${t.border}` }}>
             <CoachProgressCircle percentage={groupAttendanceRate} color="#10B981" label="انضباط حضور المجموعة" />
-            <CoachProgressCircle percentage={avgScore} color="#FF7C00" label="كفاءة متوسط المهارات" />
+            <CoachProgressCircle percentage={avgScore} color="#EF4444" label="كفاءة متوسط المهارات" />
           </div>
 
           {/* Quick Metrics stats */}
@@ -5151,7 +5310,7 @@ function CoachHome({ coach, group, groups, myPlayers, attendance, evals, trainin
                 <span style={{ fontSize: 16 }}>⭐</span>
                 <span style={{ fontSize: 12, color: t.textDim, fontWeight: 700 }}>تقييمات فنية منجزة</span>
               </div>
-              <span style={{ fontSize: 14, fontWeight: 900, color: "#FF7C00" }}>{evals.filter(e => e.coachId === coach.id).length} تقييم</span>
+              <span style={{ fontSize: 14, fontWeight: 900, color: "#EF4444" }}>{evals.filter(e => e.coachId === coach.id).length} تقييم</span>
             </div>
           </div>
         </Card>
@@ -5292,13 +5451,13 @@ function CoachHome({ coach, group, groups, myPlayers, attendance, evals, trainin
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 10, color: t.textDim }}>{p.position} · <span style={{ color: p.attendancePct > 90 ? "#10B981" : "#FF7C00", fontWeight: 700 }}>{p.attendancePct}% حضور</span></div>
+                        <div style={{ fontSize: 10, color: t.textDim }}>{p.position} · <span style={{ color: p.attendancePct > 90 ? "#10B981" : "#EF4444", fontWeight: 700 }}>{p.attendancePct}% حضور</span></div>
                       </div>
                     </div>
                     
                     <div style={{ display: "flex", gap: 8 }}>
                       <div style={{ textAlign: "center", background: `${t.border}`, borderRadius: 8, padding: "4px 8px", minWidth: 40 }}>
-                        <div style={{ fontSize: 12, fontWeight: 900, color: "#FF7C00" }}>{lastEval ? lastEval.technique : "—"}</div>
+                        <div style={{ fontSize: 12, fontWeight: 900, color: "#EF4444" }}>{lastEval ? lastEval.technique : "—"}</div>
                         <div style={{ fontSize: 8, color: t.textDim }}>تقنية</div>
                       </div>
                       <div style={{ textAlign: "center", background: `${t.border}`, borderRadius: 8, padding: "4px 8px", minWidth: 40 }}>
@@ -5984,7 +6143,7 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
                 width: 76, 
                 height: 76, 
                 borderRadius: 20, 
-                background: "linear-gradient(135deg, #2563EB, #FF7C00)", 
+                background: "linear-gradient(135deg, #2563EB, #EF4444)", 
                 display: "grid", 
                 placeItems: "center", 
                 fontSize: 32, 
@@ -5998,7 +6157,7 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
               <div>
                 <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 8, color: t.text }}>{child.name}</h2>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <Chip text={child.position || "مهاجم"} color="#FF7C00"/>
+                  <Chip text={child.position || "مهاجم"} color="#EF4444"/>
                   <Chip text={childGroup?.name || "بدون فريق"} color="#2563EB"/>
                   <Chip text={`مدرب: ${childCoach?.name || "طاقم التدريب"}`} color="#10B981"/>
                   <Chip text={child.status} color={child.status === "نشط" ? "#10B981" : child.status === "مجمد" ? "#3B82F6" : "#EF4444"}/>
@@ -6037,7 +6196,7 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
               flexDirection: "column",
               alignItems: "center"
             }}>
-              <div style={{ fontSize: 28, fontWeight: 950, color: "#FF7C00", lineHeight: 1 }}>
+              <div style={{ fontSize: 28, fontWeight: 950, color: "#EF4444", lineHeight: 1 }}>
                 {lastEval ? child.score : "—"}
               </div>
               <div style={{ fontSize: 10, color: t.textDim, fontWeight: 700, marginTop: 4 }}>التقييم الفني</div>
@@ -6240,7 +6399,7 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
 
         {/* Skills & Coach Note Card */}
         <Card t={t} style={{ padding: "24px 20px" }}>
-          <div style={{ fontWeight: 800, fontSize: 13, color: t.text, marginBottom: 16, borderRight: `3px solid #FF7C00`, paddingRight: 8 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><AnimIcon type="permissions" size={16} /> التقييم المهاري والكفاءة</span></div>
+          <div style={{ fontWeight: 800, fontSize: 13, color: t.text, marginBottom: 16, borderRight: `3px solid #EF4444`, paddingRight: 8 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><AnimIcon type="permissions" size={16} /> التقييم المهاري والكفاءة</span></div>
           
           {lastEval ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -6249,7 +6408,7 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <SkillBar label="السرعة" val={lastEval.speed} color="#06B6D4" t={t}/>
                 <SkillBar label="التقنية" val={lastEval.technique} color="#2563EB" t={t}/>
-                <SkillBar label="العمل الجماعي" val={lastEval.teamwork} color="#FF7C00" t={t}/>
+                <SkillBar label="العمل الجماعي" val={lastEval.teamwork} color="#EF4444" t={t}/>
               </div>
               
               {lastEval.note && (
@@ -6260,7 +6419,7 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
                   fontSize: 11, 
                   color: t.textDim, 
                   lineHeight: 1.6, 
-                  borderRight: `3px solid #FF7C00`,
+                  borderRight: `3px solid #EF4444`,
                   marginTop: 10
                 }}>
                   " {lastEval.note} "
@@ -6626,7 +6785,7 @@ function ParentSchedule({ childGroup, childCoach, trainings, t }) {
    MESSAGING (shared)
 ══════════════════════════════════════════════════════════ */
 const QUICK_TEMPLATES = [
-  { label: "ترحيب", text: "أهلاً بك في أكاديمية رويالز الرياضية. يسعدنا انضمامكم إلينا." },
+  { label: "ترحيب", text: "أهلاً بك في أكاديمية غدير الرياضية. يسعدنا انضمامكم إلينا." },
   { label: "تذكير سداد", text: "نحيطكم علماً بضرورة سداد الرسوم الشهرية لضمان استمرارية التدريب." },
   { label: "تأجيل تدريب", text: "نعتذر عن إلغاء تدريب اليوم لظروف طارئة، وسيتم التعويض في وقت لاحق." },
   { label: "تقييم جديد", text: "تم تحديث التقييم الفني للاعب، يرجى الاطلاع عليه من لوحة التحكم." },
@@ -6646,7 +6805,7 @@ function Messaging({ messages, setMessages, meId, meName, coaches, parents, t, r
   const templates = (() => {
     if (role === "admin") {
       return [
-        { label: "ترحيب باللاعبين", text: "أهلاً بك في أكاديمية رويالز الرياضية. يسعدنا انضمامكم إلينا متمنين لكم رحلة تدريبية متميزة." },
+        { label: "ترحيب باللاعبين", text: "أهلاً بك في أكاديمية غدير الرياضية. يسعدنا انضمامكم إلينا متمنين لكم رحلة تدريبية متميزة." },
         { label: "تذكير سداد الرسوم", text: "نحيطكم علماً بضرورة سداد الرسوم الشهرية المستحقة لضمان استمرارية التدريب." },
         { label: "إشعار إداري", text: "نود تذكيركم بضرورة الالتزام بالقواعد والزي الرسمي للأكاديمية خلال الحصص التدريبية." },
         { label: "عطلة رسمية", text: "نحيطكم علماً بأنه سيتم إيقاف التدريبات مؤقتاً خلال فترة الإجازة الرسمية المعلنة." }
@@ -7135,7 +7294,7 @@ function AdminEvents({ players = [], groups = [], parents = [], payments = [], t
 
   const templates = [
     { label: "تذكير بالاشتراك", text: "نود تذكيركم بلطف بأن اشتراك اللاعب قد شارف على الانتهاء، يرجى سداد رسوم الدورة الجديدة لتجديد الاشتراك واستمرار التدريب. شاكرين حسن تعاونكم." },
-    { label: "ترحيب باللاعب", text: "نرحب باللاعب في أكاديمية رويالز الرياضية ونسعد بانضمامه إلينا متمنين له رحلة تدريبية مميزة ومليئة بالنجاح والتألق." },
+    { label: "ترحيب باللاعب", text: "نرحب باللاعب في أكاديمية غدير الرياضية ونسعد بانضمامه إلينا متمنين له رحلة تدريبية مميزة ومليئة بالنجاح والتألق." },
     { label: "تذكير بالموعد", text: "يرجى التكرم بحضور اللاعب للتمرين في الوقت المحدد تماماً مع إحضار الزي الرسمي للأكاديمية والالتزام بالتعليمات." },
     { label: "تجميد مؤقت", text: "نود إفادتكم بأنه تم تجميد اشتراك اللاعب بناءً على طلبكم مؤقتاً، وسنوافيكم بموعد استئناف النشاط الرياضي لاحقاً." },
   ];

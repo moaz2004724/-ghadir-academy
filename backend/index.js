@@ -36,7 +36,7 @@ app.get('/api/health', (req, res) => {
 
 app.post('/api/reset-database', async (req, res) => {
   const { secret } = req.body;
-  if (secret !== 'RoyalsLaunch2026') {
+  if (secret !== 'GhadirLaunch2026') {
     return res.status(403).json({ error: 'Unauthorized reset request' });
   }
   try {
@@ -56,8 +56,8 @@ app.post('/api/reset-database', async (req, res) => {
     await prisma.user.create({
       data: {
         id: "admin",
-        email: "admin@royalsports.sa",
-        password: "Royal@2026!",
+        email: "admin@ghadirsports.sa",
+        password: "Ghadir@2026!",
         role: "ADMIN",
         name: "مدير الأكاديمية"
       }
@@ -164,8 +164,8 @@ app.post('/api/players', async (req, res) => {
 
     if (!existingParent) {
       // Parent doesn't exist yet — create User + Parent from player's email/phone
-      const email = p.email || `royals_${p.phone || Date.now()}@royals.sa`;
-      const password = p.password || `royals_${(p.phone || '0000').slice(-4)}`;
+      const email = p.email || `ghadir_${p.phone || Date.now()}@ghadirsports.sa`;
+      const password = p.password || `ghadir_${(p.phone || '0000').slice(-4)}`;
       const parentName = `ولي أمر ${p.name}`;
 
       const user = await prisma.user.upsert({

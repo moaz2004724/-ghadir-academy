@@ -6,8 +6,8 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 async function updateAdminCredentials() {
-  const newEmail = 'admin@royalsports.sa';
-  const newPassword = 'Royal@2026!';
+  const newEmail = 'admin@ghadirsports.sa';
+  const newPassword = 'Ghadir@2026!';
 
   console.log('Updating Admin credentials in PostgreSQL database...');
 
@@ -30,7 +30,8 @@ async function updateAdminCredentials() {
         OR: [
           { email: newEmail },
           { id: 'admin' },
-          { id: 'royal-admin-id' }
+          { id: 'royal-admin-id' },
+          { id: 'ghadir-admin-id' }
         ]
       }
     });
