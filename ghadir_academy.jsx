@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import * as XLSX from "xlsx";
-import logoMain from "./logo 1.png";
-import logoWhite from "./logo ابيض.png";
-import logoInstitutionColor from "./شعار مؤسسه غدير.png";
-import logoInstitutionWhite from "./شعار مؤسسه غدير٢.png";
+import logoMain from "./logo_main.png";
+import logoWhite from "./logo_white.png";
+import logoInstitutionColor from "./logo_institution_color.png";
+import logoInstitutionWhite from "./logo_institution_white.png";
 
 /* ═══ SETTINGS ════════════════════════════════════════ */
 const API_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || (
