@@ -3224,9 +3224,14 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
   const [modal, setModal] = useState(false);
   const [freezeModal, setFreezeModal] = useState(null);
   const [search, setSearch] = useState("");
+  const [fg, setFg] = useState("الكل");
   const emptyP = { name: "", age: "", groupId: groups[0]?.id || "", phone: "", position: "مهاجم", status: "نشط", score: 80, speed: 75, stamina: 75, technique: 75, teamwork: 75, goals: 0, assists: 0, attendancePct: 90, weight: "", height: "", parentId: "__new__", email: "", password: "", bus: "" };
   const [form, setForm] = useState(emptyP);
-  const filtered = players.filter(p => p.name.includes(search) || (groups.find(g => g.id === p.groupId)?.name || "").includes(search));
+  const filtered = players.filter(p => {
+    const matchesSearch = p.name.includes(search) || (groups.find(g => g.id === p.groupId)?.name || "").includes(search);
+    const matchesGroup = fg === "الكل" || p.groupId === fg;
+    return matchesSearch && matchesGroup;
+  });
 
   useEffect(() => {
     if (selectedPlayerId) {
@@ -3592,6 +3597,15 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
         }}>
           <AnimIcon type="plus" size={14} color="#fff" /> إضافة لاعب
         </Btn>
+      </div>
+
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 18, alignItems: "center" }}>
+        {/* فلاتر الأنشطة والرياضات في قائمة اللاعبين */}
+        {["الكل", ...groups.map(g => g.id)].map(id => (
+          <button key={id} onClick={() => setFg(id)} style={{ padding: "7px 13px", borderRadius: 8, border: "1px solid", borderColor: fg === id ? "#2563EB" : t.border, background: fg === id ? "rgba(37,99,235,.12)" : t.bg2, color: fg === id ? "#60A5FA" : t.textDim, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo',sans-serif" }}>
+            {id === "الكل" ? "كل الألعاب" : groups.find(g => g.id === id)?.name}
+          </button>
+        ))}
       </div>
       <Card t={t} style={{ overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -5328,7 +5342,7 @@ function CoachPortal({ user, onLogout, groups, coaches, players, parents, paymen
   }, [perms]);
 
   return (
-    <Shell title={coach.name} subtitle={`مدرب ${group?.name || ""}`} color="#06B6D4" tabs={tabs} activeTab={tab} setActiveTab={setTab} onLogout={onLogout} badge={group?.name} user={user} t={t} syncStatus={syncStatus}>
+    <Shell title={coach.name} subtitle={`أكاديمية غدير الرياضية - فرع النرجس · مدرب ${group?.name || ""}`} color="#06B6D4" tabs={tabs} activeTab={tab} setActiveTab={setTab} onLogout={onLogout} badge={group?.name} user={user} t={t} syncStatus={syncStatus}>
       {tab === "home"       && <CoachHome coach={coach} group={group} groups={groups} myPlayers={myPlayers} attendance={attendance} evals={evals} trainings={trainings} t={t}/>}
       {tab === "sessions"   && <CoachSessions coach={coach} group={group} groups={groups} trainings={trainings} t={t}/>}
       {tab === "players"    && <CoachPlayers myPlayers={myPlayers} group={group} evals={evals} t={t} trainings={trainings} attendance={attendance} payments={payments}/>}
@@ -6221,7 +6235,7 @@ function ParentPortal({ user, onLogout, players, groups, coaches, parents, payme
   ];
 
   return (
-    <Shell title={`أهلاً، ${parent.name}`} subtitle="بوابة ولي الأمر" color="#10B981" tabs={tabs} activeTab={tab} setActiveTab={setTab} onLogout={onLogout} badge="ولي أمر" user={user} t={t} syncStatus={syncStatus}>
+    <Shell title={`أهلاً، ${parent.name}`} subtitle="أكاديمية غدير الرياضية - فرع النرجس" color="#10B981" tabs={tabs} activeTab={tab} setActiveTab={setTab} onLogout={onLogout} badge="ولي أمر" user={user} t={t} syncStatus={syncStatus}>
       {myPlayers.length > 1 && (
         <div style={{ display: "flex", gap: 8, marginBottom: 18, borderBottom: `1px solid ${t.border}`, paddingBottom: 14 }}>
           {myPlayers.map(p => (
