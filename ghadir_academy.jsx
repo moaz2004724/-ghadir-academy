@@ -1559,7 +1559,24 @@ export default function App() {
   const [trainings, setTrainings] = useState(() => JSON.parse(localStorage.getItem('ghadir_trainings') || '[]'));
   const [coachesAttendance, setCoachesAttendance] = useState(() => JSON.parse(localStorage.getItem('ghadir_coachesAttendance') || '[]'));
 
-  const [groups, setGroups] = useState(() => JSON.parse(localStorage.getItem('ghadir_groups') || '[]'));
+  const [groups, setGroups] = useState(() => {
+    const local = JSON.parse(localStorage.getItem('ghadir_groups') || '[]');
+    const DEFAULT_SPORTS = [
+      { id: "g-swimming", name: "السباحة", color: "#0284C7", price: 350.0 },
+      { id: "g-football", name: "كرة القدم", color: "#16A34A", price: 350.0 },
+      { id: "g-basketball", name: "كرة السلة", color: "#EA580C", price: 350.0 },
+      { id: "g-karate", name: "الكاراتيه", color: "#DC2626", price: 350.0 },
+      { id: "g-gymnastics", name: "الجمباز", color: "#9333EA", price: 350.0 },
+      { id: "g-boxing", name: "البوكسينج", color: "#4B5563", price: 350.0 }
+    ];
+    const next = [...local];
+    DEFAULT_SPORTS.forEach(ds => {
+      if (!next.some(x => x.id === ds.id || x.name === ds.name)) {
+        next.push(ds);
+      }
+    });
+    return next;
+  });
   const [coaches, setCoaches] = useState(() => JSON.parse(localStorage.getItem('ghadir_coaches') || '[]'));
   const [players, setPlayers] = useState(() => JSON.parse(localStorage.getItem('ghadir_players') || '[]'));
   const [parents, setParents] = useState(() => JSON.parse(localStorage.getItem('ghadir_parents') || '[]'));
@@ -2905,7 +2922,6 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
           <Modal title="تعديل النشاط / اللعبة" onClose={() => setModal(null)} t={t}>
             <Input label="اسم النشاط / اللعبة" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} t={t}/>
             <Input label="المدرب المسؤول" value={form.coachId} onChange={v => setForm(f => ({ ...f, coachId: v }))} options={[{ v: "", l: "بدون مدرب" }, ...coaches.map(c => ({ v: c.id, l: c.name }))]} t={t}/>
-            <Input label="سعر الاشتراك الشهري (ر.س)" value={form.price !== undefined ? form.price : 350} onChange={v => setForm(f => ({ ...f, price: +v }))} type="number" t={t}/>
             <Input label="اللون المميز" value={form.color} onChange={v => setForm(f => ({ ...f, color: v }))} type="color" t={t}/>
             <div style={{ display: "flex", gap: 10 }}><Btn onClick={save} style={{ flex: 1 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="save" size={14} color="currentColor" /> حفظ</span></Btn><Btn variant="secondary" onClick={() => setModal(null)}>إلغاء</Btn></div>
           </Modal>
@@ -2976,7 +2992,6 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
         <Modal title="إضافة نشاط / لعبة رياضية" onClose={() => setModal(null)} t={t}>
           <Input label="اسم النشاط / اللعبة" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} t={t}/>
           <Input label="المدرب المسؤول" value={form.coachId} onChange={v => setForm(f => ({ ...f, coachId: v }))} options={[{ v: "", l: "بدون مدرب" }, ...coaches.map(c => ({ v: c.id, l: c.name }))]} t={t}/>
-          <Input label="سعر الاشتراك الشهري (ر.س)" value={form.price !== undefined ? form.price : 350} onChange={v => setForm(f => ({ ...f, price: +v }))} type="number" t={t}/>
           <Input label="اللون المميز" value={form.color} onChange={v => setForm(f => ({ ...f, color: v }))} type="color" t={t}/>
           <div style={{ display: "flex", gap: 10 }}><Btn onClick={save} style={{ flex: 1 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="check" size={14} color="currentColor" /> إضافة النشاط</span></Btn><Btn variant="secondary" onClick={() => setModal(null)}>إلغاء</Btn></div>
         </Modal>
