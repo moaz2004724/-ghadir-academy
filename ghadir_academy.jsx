@@ -1984,6 +1984,30 @@ export default function App() {
       window.location.reload(); 
     }
   };
+
+  useEffect(() => {
+    const DEFAULT_SPORTS = [
+      { id: "g-swimming", name: "السباحة", color: "#0284C7", price: 350.0 },
+      { id: "g-football", name: "كرة القدم", color: "#16A34A", price: 350.0 },
+      { id: "g-basketball", name: "كرة السلة", color: "#EA580C", price: 350.0 },
+      { id: "g-karate", name: "الكاراتيه", color: "#DC2626", price: 350.0 },
+      { id: "g-gymnastics", name: "الجمباز", color: "#9333EA", price: 350.0 },
+      { id: "g-boxing", name: "البوكسينج", color: "#4B5563", price: 350.0 }
+    ];
+    const isMissingAny = DEFAULT_SPORTS.some(ds => !groups.some(g => g.id === ds.id || g.name === ds.name));
+    if (isMissingAny) {
+      shared.setGroups(prev => {
+        const next = [...prev];
+        DEFAULT_SPORTS.forEach(ds => {
+          if (!next.some(x => x.id === ds.id || x.name === ds.name)) {
+            next.push(ds);
+          }
+        });
+        return next;
+      });
+    }
+  }, [groups.length]);
+
   return (
     <div style={{ fontFamily: "'Cairo',sans-serif", direction: "rtl", background: t.bg, minHeight: "100vh", color: t.text }}>
       <style>{`
