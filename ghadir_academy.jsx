@@ -1415,7 +1415,7 @@ function LoginPage({ onLogin, players = [], coaches = [], t }) {
           <h1 style={{ fontSize: 34, fontWeight: 900, color: "#fff", marginBottom: 8 }}>
             أكاديمية <span style={{ color: "#EF4444" }}>غدير</span> الرياضية - فرع النرجس
           </h1>
-          <p style={{ fontSize: 13, color: "#94A3B8", fontWeight: 600 }}>أكاديمية كرة القدم — نظام الإدارة المتكامل</p>
+          <p style={{ fontSize: 13, color: "#94A3B8", fontWeight: 600 }}>أكاديمية رياضية — نظام الإدارة المتكامل</p>
         </div>
 
         {/* Login Card */}
@@ -3784,7 +3784,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
 ══════════════════════════════════════════════════════════ */
 const ACADEMY_WEBSITE = "https://ghadir-club.vercel.app/";
 
-function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
+function InvoiceModal({ payment, allPayments, players, parents, onClose, groups }) {
   const invoiceRef = useRef(null);
 
   // Collect all payments for the same player in the same batch/transaction
@@ -3804,6 +3804,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
 
   const player = players.find(p => p.id === payment.playerId);
   const parent = parents ? parents.find(par => par.id === player?.parentId) : null;
+  const playerGroup = groups && player ? groups.find(g => g.id === player.groupId) : null;
   const totalAmount = relatedPayments.reduce((sum, p) => sum + p.amount - (p.discount || 0), 0);
   const invoiceNum = `INV-${payment.id.replace(/\D/g, '').slice(-8).padStart(8, '0')}`;
 
@@ -3978,7 +3979,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
             <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
               <img src={logoMain} alt="أكاديمية غدير - فرع النرجس" style={{ width: 70, height: 70, objectFit: 'contain' }}/>
               <div style={{ fontSize: 22, fontWeight: 900, color: '#1a1a2e', letterSpacing: '-0.3px', lineHeight: 1.2 }}>أكاديمية غدير الرياضية - فرع النرجس</div>
-              <div style={{ fontSize: 12, color: '#777' }}>أكاديمية كرة القدم</div>
+              <div style={{ fontSize: 12, color: '#777' }}>أكاديمية رياضية</div>
             </div>
             {/* Empty spacer to keep layout balanced */}
             <div style={{ minWidth: 120 }}></div>
@@ -4044,7 +4045,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
                   return (
                     <tr key={p.id} style={{ background: idx % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '11px 14px', fontSize: 12, fontWeight: 700, color: '#666', width: 36 }}>{idx + 1}</td>
-                      <td style={{ padding: '11px 14px', fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><AnimIcon type={pt?.icon} size={14} color={pt?.color} /> {pt?.label || p.type}</span></td>
+                      <td style={{ padding: '11px 14px', fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><AnimIcon type={pt?.icon} size={14} color={pt?.color} /> {p.type === 'subscription' && playerGroup ? `${pt?.label || p.type} (${playerGroup.name})` : (pt?.label || p.type)}</span></td>
                       <td style={{ padding: '11px 14px', fontSize: 11, color: '#777' }}>{p.month}{p.note ? ` — ${p.note}` : ''}</td>
                       <td style={{ padding: '11px 14px', fontSize: 14, fontWeight: 900, color: '#1D4ED8', textAlign: 'left' }}>
                         {p.discount > 0 ? (
@@ -4133,7 +4134,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
               <span style={{ fontSize: 9.5, color: '#888', fontWeight: 600 }}>حقوق الرعاية: مؤسسة غدير الرياضية</span>
               <img src={logoInstitutionColor} alt="مؤسسة غدير الرياضية" style={{ height: 52, objectFit: 'contain' }}/>
             </div>
-            <div style={{ fontSize: 10, color: '#888', fontWeight: 600 }}>أكاديمية غدير الرياضية - فرع النرجس · أكاديمية كرة القدم</div>
+            <div style={{ fontSize: 10, color: '#888', fontWeight: 600 }}>أكاديمية غدير الرياضية - فرع النرجس · أكاديمية رياضية</div>
           </div>
         </div>
       </div>
