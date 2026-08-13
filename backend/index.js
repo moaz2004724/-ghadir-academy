@@ -413,11 +413,11 @@ app.post('/api/groups', async (req, res) => {
     }
 
     // 2. Upsert Group
-    const updateData = { name: g.name, color: g.color, coachId: coachId };
+    const updateData = { name: g.name, color: g.color, coachId: coachId, price: g.price !== undefined ? parseFloat(g.price) : 350.0 };
     if (coachId) updateData.coach = { connect: { id: coachId } };
     else updateData.coach = { disconnect: true };
 
-    const createData = { id: g.id, name: g.name, color: g.color, coachId: coachId };
+    const createData = { id: g.id, name: g.name, color: g.color, coachId: coachId, price: g.price !== undefined ? parseFloat(g.price) : 350.0 };
     if (coachId) createData.coach = { connect: { id: coachId } };
 
     const group = await prisma.group.upsert({

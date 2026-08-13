@@ -101,6 +101,7 @@ model Group {
   players   Player[]
   trainings Training[]
   attendance Attendance[]
+  price     Float    @default(350)
 }
 
 model Payment {

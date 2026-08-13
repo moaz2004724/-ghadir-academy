@@ -2005,7 +2005,7 @@ function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, p
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const tabs = [
     { id: "overview",     icon: "dashboard",    label: "نظرة عامة"   },
-    { id: "teams",        icon: "teams",        label: "الفرق"        },
+    { id: "teams",        icon: "teams",        label: "الأنشطة والرياضات" },
     { id: "attendance",   icon: "attendance",   label: "التحضير"      },
     { id: "coaches",      icon: "coaches",      label: "المدربون"     },
     { id: "players",      icon: "players",      label: "اللاعبون"     },
@@ -2023,8 +2023,8 @@ function AdminPortal({ user, onLogout, groups, setGroups, coaches, setCoaches, p
       {tab === "attendance" && <AdminAttendance groups={groups} players={players} coaches={coaches} attendance={attendance} setAttendance={setAttendance} coachesAttendance={coachesAttendance} setCoachesAttendance={setCoachesAttendance} t={t} payments={payments} trainings={trainings} />}
       {tab === "coaches"   && <AdminCoaches coaches={coaches} setCoaches={setCoaches} groups={groups} players={players} payments={payments} t={t} />}
       {tab === "players"   && <AdminPlayers players={players} setPlayers={setPlayers} groups={groups} parents={parents} evals={evals} coaches={coaches} t={t} trainings={trainings} attendance={attendance} payments={payments} selectedPlayerId={selectedPlayerId} setSelectedPlayerId={setSelectedPlayerId} />}
-      {tab === "payments"  && <AdminPayments payments={payments} setPayments={setPayments} players={players} coaches={coaches} parents={parents} prices={prices} t={t} attendance={attendance} setAttendance={setAttendance} trainings={trainings} />}
-      {tab === "prices"    && <AdminPrices prices={prices} setPrices={setPrices} t={t} />}
+      {tab === "payments"  && <AdminPayments payments={payments} setPayments={setPayments} players={players} coaches={coaches} parents={parents} prices={prices} t={t} attendance={attendance} setAttendance={setAttendance} trainings={trainings} groups={groups} />}
+      {tab === "prices"    && <AdminPrices prices={prices} setPrices={setPrices} t={t} groups={groups} setGroups={setGroups} />}
       {tab === "schedule"  && <AdminTrainings trainings={trainings} setTrainings={setTrainings} groups={groups} coaches={coaches} t={t} />}
       {tab === "reports"   && <AdminReports players={players} coaches={coaches} groups={groups} payments={payments} attendance={attendance} evals={evals} t={t} />}
       {tab === "events"    && <AdminEvents players={players} groups={groups} parents={parents} payments={payments} trainings={trainings} attendance={attendance} t={t} />}
@@ -2798,14 +2798,15 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
 /* ── Admin Teams (NEW) ──────────────────────────────── */
 function AdminTeams({ groups, setGroups, coaches, players, t }) {
   const [modal, setModal]   = useState(null);
-  const [form, setForm]     = useState({ name: "", coachId: "", color: "#06B6D4" });
+  const [form, setForm]     = useState({ name: "", coachId: "", color: "#06B6D4", price: 350 });
   const [selGroup, setSelGroup] = useState(null);
   const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
   const save = () => {
     if (!form.name.trim()) return;
-    if (modal === "add") setGroups(g => [...g, { ...form, id: `g${Date.now()}` }]);
-    else setGroups(g => g.map(x => x.id === form.id ? form : x));
+    const cleanForm = { ...form, price: form.price !== undefined ? parseFloat(form.price) : 350 };
+    if (modal === "add") setGroups(g => [...g, { ...cleanForm, id: `g${Date.now()}` }]);
+    else setGroups(g => g.map(x => x.id === form.id ? cleanForm : x));
     setModal(null);
   };
 
@@ -2813,23 +2814,23 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
     const g = groups.find(x => x.id === selGroup);
     if (!g) {
       setTimeout(() => setSelGroup(null), 0);
-      return <div style={{ padding: 40, textAlign: "center", color: t.textDim }}>جاري تحميل بيانات الفريق...</div>;
+      return <div style={{ padding: 40, textAlign: "center", color: t.textDim }}>جاري تحميل بيانات النشاط...</div>;
     }
     const coach = coaches.find(c => c.id === g?.coachId);
     const gPlayers = players.filter(p => p.groupId === selGroup);
     return (
       <div>
-        <button onClick={() => setSelGroup(null)} style={{ background: `${t.bg2}`, border: `1px solid ${t.border}`, color: t.textDim, borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 18, fontFamily: "'Cairo',sans-serif" }}>← رجوع للفرق</button>
+        <button onClick={() => setSelGroup(null)} style={{ background: `${t.bg2}`, border: `1px solid ${t.border}`, color: t.textDim, borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", marginBottom: 18, fontFamily: "'Cairo',sans-serif" }}>← رجوع للأنشطة والرياضات</button>
         <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
           <Card t={t} style={{ padding: 24 }}>
             <div style={{ textAlign: "center", marginBottom: 16 }}>
               <div style={{ width: 64, height: 64, borderRadius: 18, background: `linear-gradient(135deg,${g.color},${g.color}88)`, display: "grid", placeItems: "center", fontSize: 26, color: "#fff", margin: "0 auto 12px", boxShadow: `0 0 20px ${g.color}40` }}>
-                <GhadirLogo size={44} />
+                <GhadirLogo size={32} />
               </div>
               <div style={{ fontWeight: 800, fontSize: 18, color: g.color, marginBottom: 4 }}>{g.name}</div>
               <div style={{ fontSize: 12, color: t.textDim }}>{gPlayers.length} لاعب مسجل</div>
             </div>
-            {[["المدرب", coach?.name || "—"]].map(([k, v]) => (
+            {[["المدرب المسؤول", coach?.name || "—"], ["قيمة الاشتراك", fmtMoney(g.price !== undefined ? g.price : 350)]].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${t.border}`, fontSize: 12 }}>
                 <span style={{ color: t.textDim }}>{k}</span>
                 <span style={{ fontWeight: 600, color: t.text }}>{v}</span>
@@ -2837,7 +2838,7 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
             ))}
             <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
               <Btn small onClick={() => { setForm({ ...g }); setModal("edit"); }} style={{ flex: 1 }}><AnimIcon type="edit" size={13} color="#fff" /> تعديل</Btn>
-              <Btn small variant="danger" onClick={() => { setGroups(gs => gs.filter(x => x.id !== g.id)); setSelGroup(null); }}><AnimIcon type="trash" size={13} color="#EF4444" /></Btn>
+              <Btn small variant="danger" onClick={() => { if(confirm("هل أنت متأكد من حذف هذا النشاط؟")) { setGroups(gs => gs.filter(x => x.id !== g.id)); setSelGroup(null); } }}><AnimIcon type="trash" size={13} color="#EF4444" /></Btn>
             </div>
           </Card>
 
@@ -2883,17 +2884,18 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
                   </tr>
                 ))}
                 {gPlayers.length === 0 && (
-                  <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: t.textFaint }}>لا يوجد لاعبون في هذه الفريق</td></tr>
+                  <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: t.textFaint }}>لا يوجد لاعبون في هذا النشاط</td></tr>
                 )}
               </tbody>
             </table>
           </Card>
         </div>
         {modal && (
-          <Modal title="تعديل الفريق" onClose={() => setModal(null)} t={t}>
-            <Input label="الاسم" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} t={t}/>
-            <Input label="المدرب" value={form.coachId} onChange={v => setForm(f => ({ ...f, coachId: v }))} options={[{ v: "", l: "بدون مدرب" }, ...coaches.map(c => ({ v: c.id, l: c.name }))]} t={t}/>
-            <Input label="اللون" value={form.color} onChange={v => setForm(f => ({ ...f, color: v }))} type="color" t={t}/>
+          <Modal title="تعديل النشاط / اللعبة" onClose={() => setModal(null)} t={t}>
+            <Input label="اسم النشاط / اللعبة" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} t={t}/>
+            <Input label="المدرب المسؤول" value={form.coachId} onChange={v => setForm(f => ({ ...f, coachId: v }))} options={[{ v: "", l: "بدون مدرب" }, ...coaches.map(c => ({ v: c.id, l: c.name }))]} t={t}/>
+            <Input label="سعر الاشتراك الشهري (ر.س)" value={form.price !== undefined ? form.price : 350} onChange={v => setForm(f => ({ ...f, price: +v }))} type="number" t={t}/>
+            <Input label="اللون المميز" value={form.color} onChange={v => setForm(f => ({ ...f, color: v }))} type="color" t={t}/>
             <div style={{ display: "flex", gap: 10 }}><Btn onClick={save} style={{ flex: 1 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="save" size={14} color="currentColor" /> حفظ</span></Btn><Btn variant="secondary" onClick={() => setModal(null)}>إلغاء</Btn></div>
           </Modal>
         )}
@@ -2904,8 +2906,8 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <Btn onClick={() => { setForm({ name: "", coachId: "", color: "#06B6D4" }); setModal("add"); }}>
-          <AnimIcon type="plus" size={14} color="#fff" /> إضافة فريق
+        <Btn onClick={() => { setForm({ name: "", coachId: "", color: "#06B6D4", price: 350 }); setModal("add"); }}>
+          <AnimIcon type="plus" size={14} color="#fff" /> إضافة نشاط / لعبة رياضية
         </Btn>
       </div>
 
@@ -2921,9 +2923,10 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: g.color, marginBottom: 4 }}>{g.name}</div>
+                    <div style={{ fontSize: 11, color: t.textDim }}>الاشتراك: <strong style={{ color: "#10B981" }}>{fmtMoney(g.price !== undefined ? g.price : 350)}</strong> / شهر</div>
                   </div>
                   <div style={{ width: 46, height: 46, borderRadius: 14, background: `${g.color}14`, border: `1px solid ${g.color}30`, display: "grid", placeItems: "center" }}>
-                    <GhadirLogo size={32} />
+                    <GhadirLogo size={28} />
                   </div>
                 </div>
               </div>
@@ -2959,11 +2962,12 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
       </div>
 
       {modal === "add" && (
-        <Modal title="إضافة فريق جديد" onClose={() => setModal(null)} t={t}>
-          <Input label="اسم الفريق" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} t={t}/>
+        <Modal title="إضافة نشاط / لعبة رياضية" onClose={() => setModal(null)} t={t}>
+          <Input label="اسم النشاط / اللعبة" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} t={t}/>
           <Input label="المدرب المسؤول" value={form.coachId} onChange={v => setForm(f => ({ ...f, coachId: v }))} options={[{ v: "", l: "بدون مدرب" }, ...coaches.map(c => ({ v: c.id, l: c.name }))]} t={t}/>
-          <Input label="اللون" value={form.color} onChange={v => setForm(f => ({ ...f, color: v }))} type="color" t={t}/>
-          <div style={{ display: "flex", gap: 10 }}><Btn onClick={save} style={{ flex: 1 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="check" size={14} color="currentColor" /> إضافة الفريق</span></Btn><Btn variant="secondary" onClick={() => setModal(null)}>إلغاء</Btn></div>
+          <Input label="سعر الاشتراك الشهري (ر.س)" value={form.price !== undefined ? form.price : 350} onChange={v => setForm(f => ({ ...f, price: +v }))} type="number" t={t}/>
+          <Input label="اللون المميز" value={form.color} onChange={v => setForm(f => ({ ...f, color: v }))} type="color" t={t}/>
+          <div style={{ display: "flex", gap: 10 }}><Btn onClick={save} style={{ flex: 1 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="check" size={14} color="currentColor" /> إضافة النشاط</span></Btn><Btn variant="secondary" onClick={() => setModal(null)}>إلغاء</Btn></div>
         </Modal>
       )}
     </div>
@@ -3444,9 +3448,9 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
               {[["الاسم", "name"], ["الهاتف", "phone"], ["رقم الهوية", "nationalId"], ["الإيميل", "email"], ["كلمة المرور", "password"]].map(([l, f]) => (
                 <div key={f} style={{ flex: "1 1 calc(50% - 7px)" }}><Input label={l} value={form[f] || ""} onChange={v => setForm(x => ({ ...x, [f]: v }))} t={t}/></div>
               ))}
-              <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="المجموعة" value={form.groupId} onChange={v => setForm(x => ({ ...x, groupId: v }))} options={groups.map(g => ({ v: g.id, l: g.name }))} t={t}/></div>
+              <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="النشاط الرياضي / اللعبة" value={form.groupId} onChange={v => setForm(x => ({ ...x, groupId: v }))} options={groups.map(g => ({ v: g.id, l: g.name }))} t={t}/></div>
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الحالة" value={form.status} onChange={v => setForm(x => ({ ...x, status: v }))} options={["نشط", "موقوف"]} t={t}/></div>
-              <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="المركز" value={form.position} onChange={v => setForm(x => ({ ...x, position: v }))} options={["مهاجم", "جناح أيمن", "جناح أيسر", "وسط", "مدافع", "حارس مرمى"]} t={t}/></div>
+              <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="التصنيف / المركز / الحزام" value={form.position} onChange={v => setForm(x => ({ ...x, position: v }))} placeholder="مثال: مهاجم، حزام أسود، سباحة صدر" t={t}/></div>
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="العمر" value={form.age} onChange={v => setForm(x => ({ ...x, age: +v }))} type="number" t={t}/></div>
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الطول (سم)" value={form.height} onChange={v => setForm(x => ({ ...x, height: +v }))} type="number" t={t}/></div>
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الوزن (كجم)" value={form.weight} onChange={v => setForm(x => ({ ...x, weight: +v }))} type="number" t={t}/></div>
@@ -3598,8 +3602,8 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
             {[["الاسم الكامل", "name"], ["رقم الهاتف (للدخول)", "phone"], ["رقم الهوية الوطنية", "nationalId"]].map(([l, f]) => (
               <div key={f} style={{ flex: "1 1 calc(50% - 7px)" }}><Input label={l} value={form[f] || ""} onChange={v => setForm(x => ({ ...x, [f]: v }))} t={t}/></div>
             ))}
-            <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="المجموعة" value={form.groupId} onChange={v => setForm(x => ({ ...x, groupId: v }))} options={groups.map(g => ({ v: g.id, l: g.name }))} t={t}/></div>
-            <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="المركز" value={form.position} onChange={v => setForm(x => ({ ...x, position: v }))} options={["مهاجم", "جناح أيمن", "جناح أيسر", "وسط", "مدافع", "حارس مرمى"]} t={t}/></div>
+            <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="النشاط الرياضي / اللعبة" value={form.groupId} onChange={v => setForm(x => ({ ...x, groupId: v }))} options={groups.map(g => ({ v: g.id, l: g.name }))} t={t}/></div>
+            <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="التصنيف / المركز / الحزام" value={form.position} onChange={v => setForm(x => ({ ...x, position: v }))} placeholder="مثال: مهاجم، حزام أسود، سباحة صدر" t={t}/></div>
             <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="العمر" value={form.age} onChange={v => setForm(x => ({ ...x, age: +v }))} type="number" t={t}/></div>
             <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الطول (سم)" value={form.height} onChange={v => setForm(x => ({ ...x, height: +v }))} type="number" t={t}/></div>
             <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الوزن (كجم)" value={form.weight} onChange={v => setForm(x => ({ ...x, weight: +v }))} type="number" t={t}/></div>
@@ -4087,19 +4091,26 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose }) {
   );
 }
 
-function AdminPayments({ payments, setPayments, players, coaches, parents, prices, t, attendance, setAttendance, trainings }) {
+function AdminPayments({ payments, setPayments, players, coaches, parents, prices, t, attendance, setAttendance, trainings, groups }) {
   const [modal, setModal] = useState(false);
   const [invoicePay, setInvoicePay] = useState(null);
   const [editModalPay, setEditModalPay] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [fc, setFc] = useState("الكل");
   const [ft, setFt] = useState("الكل");
+  const [fg, setFg] = useState("الكل");
   
   const MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"].map(m => `${m} 2026`);
   
   const empty = { playerId: players[0]?.id || "", coachId: coaches[0]?.id || "none", types: ["subscription"], month: CUR_MONTH, note: "", date: getLocalDateString(new Date()), discount: 0 };
   const [form, setForm] = useState(empty);
-  const filtered = payments.filter(p => (fc === "الكل" || p.coachId === fc) && (ft === "الكل" || p.type === ft));
+  const filtered = payments.filter(p => {
+    const playerObj = players.find(pl => pl.id === p.playerId);
+    const matchesGroup = fg === "الكل" || playerObj?.groupId === fg;
+    const matchesCoach = fc === "الكل" || p.coachId === fc;
+    const matchesType = ft === "الكل" || p.type === ft;
+    return matchesGroup && matchesCoach && matchesType;
+  });
 
   const toggleType = (type) => {
     setForm(f => {
@@ -4117,6 +4128,8 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
     const hasSubscription = form.types.includes("subscription");
     const batchTimestamp = Date.now();
 
+    const playerGroup = groups.find(g => g.id === player?.groupId);
+
     const newPayments = form.types.map(type => {
       let itemDiscount = 0;
       if (hasSubscription) {
@@ -4125,6 +4138,10 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
         if (type === form.types[0]) itemDiscount = form.discount || 0;
       }
 
+      const amount = type === "subscription"
+        ? (playerGroup?.price !== undefined ? playerGroup.price : (prices.subscription || 350))
+        : (prices[type] || 0);
+
       return {
         id: `pay${batchTimestamp}-${type}`,
         playerId: form.playerId,
@@ -4132,7 +4149,7 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
         coachId: form.coachId,
         coachName: coach?.name || (form.coachId === "none" ? "الإدارة" : ""),
         type: type,
-        amount: prices[type] || 0,
+        amount: amount,
         discount: itemDiscount,
         month: form.month,
         date: form.date,
@@ -4233,15 +4250,29 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
     setEditModalPay(null);
   };
 
-  const totalAmount = form.types.reduce((sum, type) => sum + (prices[type] || 0), 0);
+  const payPlayer = players.find(p => p.id === form.playerId);
+  const payGroup = groups.find(g => g.id === payPlayer?.groupId);
+  const totalAmount = form.types.reduce((sum, type) => {
+    const amt = type === "subscription"
+      ? (payGroup?.price !== undefined ? payGroup.price : (prices.subscription || 350))
+      : (prices[type] || 0);
+    return sum + amt;
+  }, 0);
 
   return (
     <div>
       <div style={{ display: "flex", gap: 8, justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+          {/* فلتر الأنشطة الرياضية */}
+          {["الكل", ...groups.map(g => g.id)].map(id => (
+            <button key={id} onClick={() => setFg(id)} style={{ padding: "7px 13px", borderRadius: 8, border: "1px solid", borderColor: fg === id ? "#10B981" : t.border, background: fg === id ? "rgba(16,185,129,.12)" : t.bg2, color: fg === id ? "#34D399" : t.textDim, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo',sans-serif" }}>
+              {id === "الكل" ? "كل الألعاب" : groups.find(g => g.id === id)?.name}
+            </button>
+          ))}
+          <span style={{ color: t.border, margin: "0 4px" }}>|</span>
           {["الكل", ...coaches.map(c => c.id)].map(id => (
             <button key={id} onClick={() => setFc(id)} style={{ padding: "7px 13px", borderRadius: 8, border: "1px solid", borderColor: fc === id ? "#2563EB" : t.border, background: fc === id ? "rgba(37,99,235,.12)" : t.bg2, color: fc === id ? "#60A5FA" : t.textDim, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'Cairo',sans-serif" }}>
-              {id === "الكل" ? "الكل" : coaches.find(c => c.id === id)?.name.split(" ")[0]}
+              {id === "الكل" ? "الكل (المدربين)" : coaches.find(c => c.id === id)?.name.split(" ")[0]}
             </button>
           ))}
           {Object.entries(PAY_TYPES).map(([k, v]) => (
@@ -4365,13 +4396,23 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: "block", fontSize: 11, color: t.textDim, fontWeight: 600, marginBottom: 8 }}>النوع (يمكن اختيار أكثر من نوع)</label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {Object.entries(PAY_TYPES).map(([k, v]) => (
-                <button key={k} onClick={() => toggleType(k)} 
-                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px", borderRadius: 10, border: "1px solid", borderColor: form.types.includes(k) ? v.color : t.border, background: form.types.includes(k) ? `${v.color}15` : t.inputBg, color: form.types.includes(k) ? v.color : t.textDim, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all .2s", textAlign: "right" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center" }}>{form.types.includes(k) ? <AnimIcon type="check" size={16} color="#10B981" /> : <AnimIcon type={v.icon} size={16} color={v.color} />}</span>
-                  <span>{v.label}</span>
-                </button>
-              ))}
+              {Object.entries(PAY_TYPES).map(([k, v]) => {
+                const playerObj = players.find(p => p.id === form.playerId);
+                const playerGroupObj = groups.find(g => g.id === playerObj?.groupId);
+                const getPriceForType = (type) => {
+                  if (type === "subscription") {
+                    return playerGroupObj?.price !== undefined ? playerGroupObj.price : (prices.subscription || 350);
+                  }
+                  return prices[type] || 0;
+                };
+                return (
+                  <button key={k} onClick={() => toggleType(k)} 
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px", borderRadius: 10, border: "1px solid", borderColor: form.types.includes(k) ? v.color : t.border, background: form.types.includes(k) ? `${v.color}15` : t.inputBg, color: form.types.includes(k) ? v.color : t.textDim, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all .2s", textAlign: "right" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center" }}>{form.types.includes(k) ? <AnimIcon type="check" size={16} color="#10B981" /> : <AnimIcon type={v.icon} size={16} color={v.color} />}</span>
+                    <span>{v.label} — {fmtMoney(getPriceForType(k))}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -4428,8 +4469,14 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
   );
 }
 
-function AdminPrices({ prices, setPrices, t }) {
-  const [form, setForm] = useState({ ...prices });
+function AdminPrices({ prices, setPrices, t, groups, setGroups }) {
+  const [form, setForm] = useState(() => {
+    const initialForm = { ...prices };
+    (groups || []).forEach(g => {
+      initialForm[`group_${g.id}`] = g.price !== undefined ? g.price : 350;
+    });
+    return initialForm;
+  });
   const [saved, setSaved] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -4488,15 +4535,37 @@ function AdminPrices({ prices, setPrices, t }) {
     }
   };
 
+  const handleSave = () => {
+    const updatedPrices = { ...prices };
+    Object.keys(prices).forEach(k => {
+      if (form[k] !== undefined) {
+        updatedPrices[k] = form[k];
+      }
+    });
+    setPrices(updatedPrices);
+
+    if (groups && setGroups) {
+      setGroups(prevGroups => prevGroups.map(g => {
+        const newPrice = form[`group_${g.id}`];
+        return newPrice !== undefined ? { ...g, price: parseFloat(newPrice) } : g;
+      }));
+    }
+
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2200);
+  };
+
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
       <div style={{ flex: "1 1 420px", maxWidth: 460 }}>
         <Card t={t} style={{ padding: 28 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
             <AnimIcon type="prices" size={18} color="#D8A435"/>
-            <div style={{ fontWeight: 700, fontSize: 14, color: t.text }}>تسعيرة الأكاديمية</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: t.text }}>تسعيرة الأكاديمية والأنشطة</div>
           </div>
-          {Object.entries(PAY_TYPES).map(([k, v]) => (
+          
+          {/* أسعار الخدمات العامة */}
+          {Object.entries(PAY_TYPES).filter(([k]) => k !== "subscription").map(([k, v]) => (
             <div key={k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", borderBottom: `1px solid ${t.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 22 }}>{v.icon}</span>
@@ -4509,7 +4578,27 @@ function AdminPrices({ prices, setPrices, t }) {
               </div>
             </div>
           ))}
-          <button onClick={() => { setPrices({ ...form }); setSaved(true); setTimeout(() => setSaved(false), 2200); }}
+
+          {/* أسعار اشتراكات الألعاب الرياضية والأنشطة */}
+          {(groups || []).map(g => (
+            <div key={g.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", borderBottom: `1px solid ${t.border}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 22 }}>🏆</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{`اشتراك ${g.name}`}</div>
+                  <div style={{ fontSize: 11, color: t.textDim }}>السعر الحالي: {fmtMoney(g.price !== undefined ? g.price : 350)}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input type="number" value={form[`group_${g.id}`] !== undefined ? form[`group_${g.id}`] : 350} 
+                  onChange={e => setForm(f => ({ ...f, [`group_${g.id}`]: +e.target.value }))}
+                  style={{ width: 90, background: t.inputBg, border: `1px solid ${t.border2}`, borderRadius: 8, padding: "7px 10px", color: g.color || "#2563EB", fontSize: 14, fontWeight: 700, outline: "none", textAlign: "center", fontFamily: "'Cairo',sans-serif" }}/>
+                <span style={{ fontSize: 12, color: t.textDim }}>ر.س</span>
+              </div>
+            </div>
+          ))}
+
+          <button onClick={handleSave}
             style={{ width: "100%", marginTop: 20, background: saved ? "linear-gradient(135deg,#10B981,#065F46)" : "linear-gradient(135deg,#2563EB,#1E40AF)", color: "#fff", border: "none", borderRadius: 10, padding: 13, fontSize: 14, fontWeight: 700, cursor: "pointer", transition: "background .3s", fontFamily: "'Cairo',sans-serif" }}>
             {saved ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="check" size={14} color="currentColor" /> تم الحفظ!</span> : <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="save" size={14} color="currentColor" /> حفظ الأسعار</span>}
           </button>
@@ -5194,7 +5283,7 @@ function CoachPortal({ user, onLogout, groups, coaches, players, parents, paymen
       {tab === "players"    && <CoachPlayers myPlayers={myPlayers} group={group} evals={evals} t={t} trainings={trainings} attendance={attendance} payments={payments}/>}
       {tab === "attendance" && perms.attendance !== false && <CoachAttendance coachId={user.id} group={group} myPlayers={myPlayers} attendance={attendance} setAttendance={setAttendance} t={t} payments={payments} trainings={trainings}/>}
       {tab === "eval"       && perms.evals !== false      && <CoachEval coachId={user.id} myPlayers={myPlayers} evals={evals} setEvals={setEvals} t={t}/>}
-      {tab === "payments"   && perms.payments !== false   && <CoachPayments coachId={user.id} myPlayers={myPlayers} payments={payments} setPayments={setPayments} prices={prices} coaches={coaches} t={t}/>}
+      {tab === "payments"   && perms.payments !== false   && <CoachPayments coachId={user.id} myPlayers={myPlayers} payments={payments} setPayments={setPayments} prices={prices} coaches={coaches} t={t} groups={groups}/>}
       {tab === "messages"   && perms.messages !== false   && <Messaging messages={messages} setMessages={setMessages} meId={user.id} meName={coach.name} coaches={coaches} parents={parents} t={t} role="coach" myGroupId={coach.groupId} players={players} />}
     </Shell>
   );
@@ -5947,7 +6036,7 @@ function CoachEval({ coachId, myPlayers, evals, setEvals, t }) {
 }
 
 /* ── Coach Payments ─────────────────────────────────── */
-function CoachPayments({ coachId, myPlayers, payments, setPayments, prices, coaches, t }) {
+function CoachPayments({ coachId, myPlayers, payments, setPayments, prices, coaches, t, groups }) {
   const [modal, setModal] = useState(false);
   const [form, setForm]   = useState({ playerId: myPlayers[0]?.id || "", type: "subscription", month: CUR_MONTH, note: "", date: getLocalDateString(new Date()) });
   const myPays = payments.filter(p => p.coachId === coachId);
@@ -5955,7 +6044,12 @@ function CoachPayments({ coachId, myPlayers, payments, setPayments, prices, coac
   const save   = () => {
     const player = myPlayers.find(p => p.id === form.playerId);
     const coach  = coaches.find(c => c.id === coachId);
-    setPayments(ps => [...ps, { ...form, id: `pay${Date.now()}`, coachId, coachName: coach?.name || "", playerName: player?.name || "", amount: prices[form.type] || 0, discount: 0 }]);
+    const playerGroup = (groups || []).find(g => g.id === player?.groupId);
+    const amount = form.type === "subscription"
+      ? (playerGroup?.price !== undefined ? playerGroup.price : (prices.subscription || 350))
+      : (prices[form.type] || 0);
+
+    setPayments(ps => [...ps, { ...form, id: `pay${Date.now()}`, coachId, coachName: coach?.name || "", playerName: player?.name || "", amount: amount, discount: 0 }]);
     setModal(false);
   };
   return (
@@ -6003,12 +6097,29 @@ function CoachPayments({ coachId, myPlayers, payments, setPayments, prices, coac
       {modal && (
         <Modal title="تسجيل استلام دفعة" onClose={() => setModal(false)} t={t}>
           <Input label="اللاعب" value={form.playerId} onChange={v => setForm(f => ({ ...f, playerId: v }))} options={myPlayers.map(p => ({ v: p.id, l: p.name }))} t={t}/>
-          <Input label="النوع" value={form.type} onChange={v => setForm(f => ({ ...f, type: v }))} options={Object.entries(PAY_TYPES).map(([k, v]) => { const em = { payments: "💳", bus: "🚌", uniform: "👕", bag: "🎒", jersey: "🏷️" }[v.icon] || "💳"; return { v: k, l: `${em} ${v.label} — ${prices[k]} ر.س` }; })} t={t}/>
+          <Input label="النوع" value={form.type} onChange={v => setForm(f => ({ ...f, type: v }))} options={Object.entries(PAY_TYPES).map(([k, v]) => { 
+            const em = { payments: "💳", bus: "🚌", uniform: "👕", bag: "🎒", jersey: "🏷️" }[v.icon] || "💳"; 
+            const playerObj = myPlayers.find(p => p.id === form.playerId);
+            const playerGroup = (groups || []).find(g => g.id === playerObj?.groupId);
+            const priceVal = k === "subscription" 
+              ? (playerGroup?.price !== undefined ? playerGroup.price : (prices.subscription || 350))
+              : (prices[k] || 0);
+            return { v: k, l: `${em} ${v.label} — ${fmtMoney(priceVal)}` }; 
+          })} t={t}/>
           <Input label="الشهر" value={form.month} onChange={v => setForm(f => ({ ...f, month: v }))} placeholder={CUR_MONTH} t={t}/>
           <Input label="التاريخ" value={form.date} onChange={v => setForm(f => ({ ...f, date: v }))} type="date" t={t}/>
           <Input label="ملاحظة" value={form.note} onChange={v => setForm(f => ({ ...f, note: v }))} placeholder="اختياري" t={t}/>
           <div style={{ background: t.bg, borderRadius: 10, padding: "12px 14px", marginBottom: 14, fontSize: 13, color: t.text }}>
-            المبلغ: <span style={{ color: "#10B981", fontWeight: 900, fontSize: 16 }}>{fmtMoney(prices[form.type] || 0)}</span>
+            المبلغ: <span style={{ color: "#10B981", fontWeight: 900, fontSize: 16 }}>
+              {(() => {
+                const playerObj = myPlayers.find(p => p.id === form.playerId);
+                const playerGroup = (groups || []).find(g => g.id === playerObj?.groupId);
+                const priceVal = form.type === "subscription" 
+                  ? (playerGroup?.price !== undefined ? playerGroup.price : (prices.subscription || 350))
+                  : (prices[form.type] || 0);
+                return fmtMoney(priceVal);
+              })()}
+            </span>
           </div>
           <div style={{ display: "flex", gap: 10 }}><Btn onClick={save} style={{ flex: 1 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="save" size={14} color="currentColor" /> تسجيل</span></Btn><Btn variant="secondary" onClick={() => setModal(false)}>إلغاء</Btn></div>
         </Modal>
@@ -6072,7 +6183,7 @@ function ParentPortal({ user, onLogout, players, groups, coaches, parents, payme
       )}
       {tab === "overview"   && <ParentOverview child={child} childGroup={childGroup} childCoach={childCoach} childPays={childPays} childEvals={childEvals} prices={prices} trainings={trainings} coaches={coaches} t={t} attendance={attendance}/>}
       {tab === "scores"     && <ParentScores child={child} childEvals={childEvals} childCoach={childCoach} t={t}/>}
-      {tab === "payments"   && <ParentPayments child={child} childPays={childPays} prices={prices} trainings={trainings} attendance={attendance} t={t}/>}
+      {tab === "payments"   && <ParentPayments child={child} childPays={childPays} prices={prices} trainings={trainings} attendance={attendance} t={t} groups={groups}/>}
       {tab === "schedule"   && <ParentSchedule childGroup={childGroup} childCoach={childCoach} trainings={trainings} t={t}/>}
       {tab === "messages"   && <Messaging messages={messages} setMessages={setMessages} meId={user.id} meName={parent.name} coaches={coaches} parents={parents} t={t} role="parent" myCoachIds={myCoachIds} />}
     </Shell>
@@ -6588,13 +6699,16 @@ function ParentAttendance({ child, childAtt, childPays, t }) {
   );
 }
 
-function ParentPayments({ child, childPays, prices, trainings, attendance, t }) {
+function ParentPayments({ child, childPays, prices, trainings, attendance, t, groups }) {
   const total     = childPays.reduce((a, p) => a + p.amount - (p.discount || 0), 0);
   const subDetails = getPlayerSubscriptionDetails(child, trainings, attendance, childPays);
   const byType    = Object.entries(PAY_TYPES).map(([k, v]) => ({ k, ...v, paid: childPays.filter(p => p.type === k).reduce((a, p) => a + p.amount - (p.discount || 0), 0), count: childPays.filter(p => p.type === k).length }));
 
   const subStatus = subDetails.isUnpaid ? "غير مسدد" : subDetails.isExpired ? "منتهي" : "نشط";
   const subColor = subDetails.isUnpaid || subDetails.isExpired ? "#EF4444" : "#10B981";
+
+  const childGroup = (groups || []).find(g => g.id === child.groupId);
+  const subscriptionPrice = childGroup?.price !== undefined ? childGroup.price : (prices.subscription || 350);
 
   return (
     <div>
@@ -6611,7 +6725,7 @@ function ParentPayments({ child, childPays, prices, trainings, attendance, t }) 
               ? `اشتراك اللاعب غير مسدد حالياً — المبلغ المطلوب: ` 
               : `حصص الدورة التدريبية الحالية انتهت (${subDetails.cycleSessions.length}/${subDetails.cycleSessions.length}) — يرجى سداد الاشتراك للدورة القادمة بقيمة: `
             }
-            <strong>{fmtMoney(prices.subscription)}</strong>
+            <strong>{fmtMoney(subscriptionPrice)}</strong>
           </span>
         </div>
       )}
