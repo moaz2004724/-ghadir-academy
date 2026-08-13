@@ -48,6 +48,17 @@ const getLocalDateString = (date) => {
   return `${y}-${m}-${d}`;
 };
 
+const getSportIcon = (name) => {
+  const n = (name || "").toLowerCase();
+  if (n.includes("سباح") || n.includes("swimming")) return "🏊‍♂️";
+  if (n.includes("قدم") || n.includes("football") || n.includes("soccer")) return "⚽";
+  if (n.includes("سلة") || n.includes("basketball")) return "🏀";
+  if (n.includes("كاراتيه") || n.includes("karate")) return "🥋";
+  if (n.includes("جمباز") || n.includes("gymnastic")) return "🤸‍♂️";
+  if (n.includes("بوكس") || n.includes("boxing") || n.includes("ملاكم")) return "🥊";
+  return "🏆";
+};
+
 const toLocalDateStr = (val) => {
   if (!val) return "";
   if (val instanceof Date) {
@@ -2824,8 +2835,8 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
         <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
           <Card t={t} style={{ padding: 24 }}>
             <div style={{ textAlign: "center", marginBottom: 16 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 18, background: `linear-gradient(135deg,${g.color},${g.color}88)`, display: "grid", placeItems: "center", fontSize: 26, color: "#fff", margin: "0 auto 12px", boxShadow: `0 0 20px ${g.color}40` }}>
-                <GhadirLogo size={32} />
+              <div style={{ width: 64, height: 64, borderRadius: 18, background: `linear-gradient(135deg,${g.color},${g.color}88)`, display: "grid", placeItems: "center", fontSize: 32, color: "#fff", margin: "0 auto 12px", boxShadow: `0 0 20px ${g.color}40` }}>
+                {getSportIcon(g.name)}
               </div>
               <div style={{ fontWeight: 800, fontSize: 18, color: g.color, marginBottom: 4 }}>{g.name}</div>
               <div style={{ fontSize: 12, color: t.textDim }}>{gPlayers.length} لاعب مسجل</div>
@@ -2925,8 +2936,8 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
                     <div style={{ fontSize: 20, fontWeight: 900, color: g.color, marginBottom: 4 }}>{g.name}</div>
                     <div style={{ fontSize: 11, color: t.textDim }}>الاشتراك: <strong style={{ color: "#10B981" }}>{fmtMoney(g.price !== undefined ? g.price : 350)}</strong> / شهر</div>
                   </div>
-                  <div style={{ width: 46, height: 46, borderRadius: 14, background: `${g.color}14`, border: `1px solid ${g.color}30`, display: "grid", placeItems: "center" }}>
-                    <GhadirLogo size={28} />
+                  <div style={{ width: 46, height: 46, borderRadius: 14, background: `${g.color}14`, border: `1px solid ${g.color}30`, display: "grid", placeItems: "center", fontSize: 24 }}>
+                    {getSportIcon(g.name)}
                   </div>
                 </div>
               </div>
@@ -4583,7 +4594,7 @@ function AdminPrices({ prices, setPrices, t, groups, setGroups }) {
           {(groups || []).map(g => (
             <div key={g.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", borderBottom: `1px solid ${t.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 22 }}>🏆</span>
+                <span style={{ fontSize: 22 }}>{getSportIcon(g.name)}</span>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{`اشتراك ${g.name}`}</div>
                   <div style={{ fontSize: 11, color: t.textDim }}>السعر الحالي: {fmtMoney(g.price !== undefined ? g.price : 350)}</div>
