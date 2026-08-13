@@ -2193,19 +2193,22 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
     });
   }
 
-  // Dynamic Player Position distribution
-  const posCounts = {};
+  // Dynamic Player Sport/Game distribution
+  const sportCounts = {};
   players.forEach(p => {
-    const pos = p.position || "غير محدد";
-    posCounts[pos] = (posCounts[pos] || 0) + 1;
+    const g = groups.find(x => x.id === p.groupId);
+    const sport = g?.name || "غير محدد";
+    sportCounts[sport] = (sportCounts[sport] || 0) + 1;
   });
-  const posColors = ["#2563EB", "#EF4444", "#10B981", "#EF4444", "#06B6D4", "#F59E0B", "#8B5CF6"];
-  const dynamicPosData = Object.entries(posCounts).map(([name, value], i) => ({
-    name,
-    value,
-    color: posColors[i % posColors.length]
-  }));
-  const posData = dynamicPosData.length > 0 ? dynamicPosData : [{ name: "لا يوجد لاعبين", value: 1, color: t.border }];
+  const dynamicSportData = Object.entries(sportCounts).map(([name, value]) => {
+    const g = groups.find(x => x.name === name);
+    return {
+      name,
+      value,
+      color: g?.color || "#4B5563"
+    };
+  });
+  const sportData = dynamicSportData.length > 0 ? dynamicSportData : [{ name: "لا يوجد لاعبين", value: 1, color: t.border }];
 
   // Dynamic Weekly Attendance trend (last 6 sessions)
   const sortedAtt = [...(attendance || [])]
@@ -2511,11 +2514,11 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><AnimIcon type="attendance" size={12} color={activeChart === "attendance" ? "#FFF" : t.textDim} /> الانضباط والحضور</span>
               </button>
               <button 
-                onClick={() => setActiveChart("positions")}
+                onClick={() => setActiveChart("sports")}
                 style={{
                   border: "none",
-                  background: activeChart === "positions" ? t.purple : "transparent",
-                  color: activeChart === "positions" ? "#FFF" : t.textDim,
+                  background: activeChart === "sports" ? t.purple : "transparent",
+                  color: activeChart === "sports" ? "#FFF" : t.textDim,
                   padding: "6px 14px",
                   borderRadius: 8,
                   fontSize: 11,
@@ -2524,7 +2527,7 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
                   transition: "all 0.2s"
                 }}
               >
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><AnimIcon type="soccer" size={12} color={activeChart === "positions" ? "#FFF" : t.textDim} /> مواضع اللاعبين</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><AnimIcon type="soccer" size={12} color={activeChart === "sports" ? "#FFF" : t.textDim} /> الألعاب</span>
               </button>
             </div>
           </div>
@@ -2568,26 +2571,26 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
               </div>
             )}
 
-            {activeChart === "positions" && (
+            {activeChart === "sports" && (
               <div style={{ width: "100%", display: "flex", flexDirection: isDesktop ? "row" : "column", alignItems: "center", gap: 20 }}>
                 <div style={{ flex: 1.2, width: "100%" }}>
                   <ResponsiveContainer width="100%" height={200}>
                     <PieChart>
-                      <Pie data={posData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={4} dataKey="value" animationDuration={1200}>
-                        {posData.map((e, i) => <Cell key={i} fill={e.color || t.border} />)}
+                      <Pie data={sportData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={4} dataKey="value" animationDuration={1200}>
+                        {sportData.map((e, i) => <Cell key={i} fill={e.color || t.border} />)}
                       </Pie>
                       <Tooltip content={<ArabicTooltip />}/>
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
                 <div style={{ flex: 1, width: "100%", display: "flex", flexWrap: "wrap", gap: "10px 14px", justifyContent: isDesktop ? "flex-start" : "center" }}>
-                  {players.length > 0 ? posData.map((d, i) => (
+                  {players.length > 0 ? sportData.map((d, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: t.textDim, background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: 10, padding: "6px 12px" }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.color }}/>
                       <span>{d.name}</span>
                       <span style={{ color: d.color, fontWeight: 900 }}>{d.value}</span>
                     </div>
-                  )) : <div style={{ fontSize: 11, color: t.textFaint }}>لا توجد بيانات مواضع للاعبين</div>}
+                  )) : <div style={{ fontSize: 11, color: t.textFaint }}>لا توجد بيانات ألعاب للاعبين</div>}
                 </div>
               </div>
             )}
