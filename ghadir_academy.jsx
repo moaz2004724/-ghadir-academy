@@ -4167,6 +4167,7 @@ function InvoiceModal({ payment, allPayments, players, parents, onClose, groups 
 
 function AdminPayments({ payments, setPayments, players, coaches, parents, prices, t, attendance, setAttendance, trainings, groups }) {
   const [modal, setModal] = useState(false);
+  const [modalFg, setModalFg] = useState("الكل");
   const [invoicePay, setInvoicePay] = useState(null);
   const [editModalPay, setEditModalPay] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -4361,6 +4362,7 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
             return;
           }
           setForm({ ...empty, playerId: players[0].id, coachId: coaches[0]?.id || "none" }); 
+          setModalFg("الكل");
           setModal(true); 
         }}>
           <AnimIcon type="plus" size={14} color="#fff"/> تسجيل دفعة
@@ -4464,7 +4466,30 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
       </Card>
       {modal && (
         <Modal title="تسجيل دفعة جديدة" onClose={() => setModal(false)} t={t}>
-          <Input label="اللاعب" value={form.playerId} onChange={v => setForm(f => ({ ...f, playerId: v }))} options={players.map(p => ({ v: p.id, l: p.name }))} t={t}/>
+          <Input 
+            label="تصفية اللاعبين حسب الرياضة / اللعبة" 
+            value={modalFg} 
+            onChange={v => {
+              setModalFg(v);
+              const filteredPlayers = players.filter(p => v === "الكل" || p.groupId === v);
+              if (filteredPlayers.length > 0) {
+                setForm(f => ({ ...f, playerId: filteredPlayers[0].id }));
+              } else {
+                setForm(f => ({ ...f, playerId: "" }));
+              }
+            }} 
+            options={[{ v: "الكل", l: "كل الرياضات والأنشطة" }, ...groups.map(g => ({ v: g.id, l: g.name }))] } 
+            t={t}
+          />
+          <Input 
+            label="اللاعب" 
+            value={form.playerId} 
+            onChange={v => setForm(f => ({ ...f, playerId: v }))} 
+            options={players
+              .filter(p => modalFg === "الكل" || p.groupId === modalFg)
+              .map(p => ({ v: p.id, l: p.name }))} 
+            t={t}
+          />
           <Input label="المستلم" value={form.coachId} onChange={v => setForm(f => ({ ...f, coachId: v }))} options={[{ v: "none", l: "الإدارة (لا يوجد مدرب)" }, ...coaches.map(c => ({ v: c.id, l: c.name }))]} t={t}/>
           
           <div style={{ marginBottom: 14 }}>
