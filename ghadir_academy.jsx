@@ -2890,7 +2890,16 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
             ))}
             <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
               <Btn small onClick={() => { setForm({ ...g }); setModal("edit"); }} style={{ flex: 1 }}><AnimIcon type="edit" size={13} color="#fff" /> تعديل</Btn>
-              <Btn small variant="danger" onClick={() => { if(confirm("هل أنت متأكد من حذف هذا النشاط؟")) { setGroups(gs => gs.filter(x => x.id !== g.id)); setSelGroup(null); } }}><AnimIcon type="trash" size={13} color="#EF4444" /></Btn>
+              <Btn small variant="danger" onClick={() => {
+                if (gPlayers.length > 0) {
+                  alert("لا يمكن حذف هذا النشاط الرياضي لوجود لاعبين مسجلين فيه. يرجى تعديل بيانات هؤلاء اللاعبين ونقلهم إلى لعبة/نشاط آخر أولاً.");
+                  return;
+                }
+                if (confirm("هل أنت متأكد من حذف هذا النشاط؟")) {
+                  setGroups(gs => gs.filter(x => x.id !== g.id));
+                  setSelGroup(null);
+                }
+              }}><AnimIcon type="trash" size={13} color="#EF4444" /></Btn>
             </div>
           </Card>
 
