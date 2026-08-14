@@ -8,9 +8,10 @@ import crypto from 'crypto';
 
 dotenv.config();
 
+let isVaultEnabled = true;
 if (!process.env.PASSWORD_ENCRYPTION_KEY) {
-  console.error("FATAL ERROR: PASSWORD_ENCRYPTION_KEY environment variable is missing.");
-  process.exit(1);
+  console.warn("WARNING: PASSWORD_ENCRYPTION_KEY environment variable is missing. Password vault is disabled.");
+  isVaultEnabled = false;
 }
 
 const ALGORITHM = 'aes-256-gcm';
@@ -25,7 +26,7 @@ const getEncryptionKey = () => {
 };
 
 const encryptPassword = (plainText) => {
-  if (!plainText) return null;
+  if (!isVaultEnabled || !plainText) return null;
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
@@ -36,6 +37,9 @@ const encryptPassword = (plainText) => {
 };
 
 const decryptPassword = (cipherText) => {
+  if (!isVaultEnabled) {
+    throw new Error('خزانة كلمات المرور معطلة لعدم تهيئة مفتاح التشفير.');
+  }
   if (!cipherText) return null;
   const key = getEncryptionKey();
   const parts = cipherText.split(':');
@@ -198,6 +202,9 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/reveal-password', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
+  if (!isVaultEnabled) {
+    return res.status(503).json({ error: 'خزانة كلمات المرور معطلة حالياً لعدم تهيئة مفتاح التشفير بالسيرفر' });
+  }
   const { targetUserId } = req.body;
   try {
     const targetUser = await prisma.user.findUnique({
