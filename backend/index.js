@@ -830,6 +830,34 @@ app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+const migratePasswordsOnBoot = async () => {
+  try {
+    console.log("Checking database users for plain text passwords...");
+    const users = await prisma.user.findMany();
+    let updatedCount = 0;
+    for (const u of users) {
+      const isAlreadyHashed = u.password.startsWith('$2a$') || u.password.startsWith('$2b$') || u.password.length === 60;
+      if (!isAlreadyHashed) {
+        console.log(`Hashing password for user: ${u.email}`);
+        const hashedPassword = bcrypt.hashSync(u.password, 10);
+        await prisma.user.update({
+          where: { id: u.id },
+          data: { password: hashedPassword }
+        });
+        updatedCount++;
+      }
+    }
+    if (updatedCount > 0) {
+      console.log(`Successfully migrated ${updatedCount} users to hashed passwords on boot.`);
+    } else {
+      console.log("All database users already have hashed passwords.");
+    }
+  } catch (err) {
+    console.error("Boot-time password migration failed:", err);
+  }
+};
+
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  await migratePasswordsOnBoot();
 });
