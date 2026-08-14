@@ -13,6 +13,89 @@ const API_URL = (typeof import.meta !== 'undefined' && import.meta.env && import
     : ""
 );
 
+function PasswordReveal({ userId, t }) {
+  const [revealed, setRevealed] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer(prev => {
+          if (prev <= 1) {
+            setRevealed("");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  const handleReveal = async () => {
+    if (revealed) {
+      setRevealed("");
+      setTimer(0);
+      return;
+    }
+    setLoading(true);
+    try {
+      const savedToken = sessionStorage.getItem('ghadir_token');
+      const res = await fetch(`${API_URL}/api/reveal-password`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(savedToken ? { 'Authorization': `Bearer ${savedToken}` } : {})
+        },
+        body: JSON.stringify({ targetUserId: userId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRevealed(data.password);
+        setTimer(12); // Auto-hide after 12 seconds
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "فشل عرض كلمة المرور");
+      }
+    } catch (e) {
+      alert("حدث خطأ أثناء الاتصال بالخادم");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: revealed ? "#D8A435" : t.textDim }}>
+        {revealed ? revealed : "••••••••••••"}
+      </span>
+      <button 
+        onClick={handleReveal}
+        disabled={loading}
+        style={{
+          border: "none",
+          background: "rgba(37,99,235,0.1)",
+          color: "#2563EB",
+          padding: "3px 8px",
+          borderRadius: 6,
+          fontSize: 10,
+          cursor: "pointer",
+          fontWeight: 700,
+          fontFamily: "'Cairo',sans-serif",
+          display: "flex",
+          alignItems: "center",
+          gap: 3
+        }}
+      >
+        {loading ? "تحميل..." : revealed ? `إخفاء (${timer}ث)` : "👁 كشف"}
+      </button>
+    </div>
+  );
+}
+
+
 const isTrainingActive = (tr) => {
   if (tr.isRecurring || tr.isRecurring === undefined) return true;
   if (!tr.date) return true;
@@ -3083,9 +3166,13 @@ function AdminCoaches({ coaches, setCoaches, groups, players, payments, t }) {
                 <Chip text={c.specialty} color="#2563EB"/>
               </div>
               {[["الهاتف", c.phone], ["الإيميل", c.email], ["كلمة المرور", c.password || "—"], ["الشهادة", c.cert], ["الخبرة", `${c.exp} سنة`], ["المجموعة", g?.name || "—"], ["الراتب", fmtMoney(c.salary)]].map(([k, v]) => (
-                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px solid ${t.border}`, fontSize: 12 }}>
+                <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: `1px solid ${t.border}`, fontSize: 12 }}>
                   <span style={{ color: t.textDim }}>{k}</span>
-                  <span style={{ fontWeight: 600, color: k === "كلمة المرور" ? "#D8A435" : k === "الإيميل" ? "#06B6D4" : t.text, fontFamily: k === "كلمة المرور" ? "monospace" : undefined }}>{v}</span>
+                  {k === "كلمة المرور" ? (
+                    <PasswordReveal userId={c.userId} t={t} />
+                  ) : (
+                    <span style={{ fontWeight: 600, color: k === "الإيميل" ? "#06B6D4" : t.text }}>{v}</span>
+                  )}
                 </div>
               ))}
               <Btn style={{ width: "100%", marginTop: 14 }} onClick={() => { setForm({ ...c }); setModal("edit"); }}>
@@ -3360,9 +3447,13 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
               ["إيميل الدخول", par?.email || p.email || "—"],
               ["كلمة المرور", par?.password || p.password || (p.phone ? `ghadir_${p.phone.slice(-4)}` : "كلمة مرور ولي الأمر الحالية")]
             ].map(([k, v]) => (
-              <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${t.border}`, fontSize: 12 }}>
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${t.border}`, fontSize: 12 }}>
                 <span style={{ color: t.textDim }}>{k}</span>
-                <span style={{ fontWeight: 600, color: (k === "كلمة المرور" && v !== "كلمة مرور ولي الأمر الحالية") ? "#D8A435" : k === "إيميل الدخول" ? "#06B6D4" : t.text, fontFamily: k === "كلمة المرور" ? "monospace" : undefined, fontSize: k === "كلمة المرور" ? 11 : 12 }}>{v}</span>
+                {k === "كلمة المرور" ? (
+                  <PasswordReveal userId={par?.userId || p.parentId} t={t} />
+                ) : (
+                  <span style={{ fontWeight: 600, color: k === "إيميل الدخول" ? "#06B6D4" : t.text, fontSize: 12 }}>{v}</span>
+                )}
               </div>
             ))}
             <Btn style={{ width: "100%", marginTop: 14 }} onClick={() => { setForm({ ...p, email: par?.email || "", password: par?.password || "" }); setModal("edit"); }}>

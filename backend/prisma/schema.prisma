@@ -22,6 +22,7 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
+  encryptedPassword String?
   name      String
   role      Role     @default(PARENT)
   phone     String?
@@ -171,4 +172,12 @@ model Training {
   isRecurring   Boolean  @default(true)
   type          String   @default("training") // "training" or "match"
   isFriendly    Boolean  @default(false)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  targetId  String
+  action    String   // PASSWORD_REVEALED
+  timestamp DateTime @default(now())
 }

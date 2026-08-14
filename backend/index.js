@@ -4,8 +4,53 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 dotenv.config();
+
+if (!process.env.PASSWORD_ENCRYPTION_KEY) {
+  console.error("FATAL ERROR: PASSWORD_ENCRYPTION_KEY environment variable is missing.");
+  process.exit(1);
+}
+
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 12;
+
+const getEncryptionKey = () => {
+  const key = process.env.PASSWORD_ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error('PASSWORD_ENCRYPTION_KEY environment variable is missing.');
+  }
+  return crypto.createHash('sha256').update(key).digest();
+};
+
+const encryptPassword = (plainText) => {
+  if (!plainText) return null;
+  const key = getEncryptionKey();
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(plainText, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag().toString('hex');
+  return `${iv.toString('hex')}:${encrypted}:${authTag}`;
+};
+
+const decryptPassword = (cipherText) => {
+  if (!cipherText) return null;
+  const key = getEncryptionKey();
+  const parts = cipherText.split(':');
+  if (parts.length !== 3) {
+    throw new Error('Invalid encrypted password format.');
+  }
+  const iv = Buffer.from(parts[0], 'hex');
+  const encryptedText = Buffer.from(parts[1], 'hex');
+  const authTag = Buffer.from(parts[2], 'hex');
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  decipher.setAuthTag(authTag);
+  let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+};
 
 const app = express();
 const prisma = new PrismaClient();
@@ -152,6 +197,39 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+app.post('/api/reveal-password', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
+  const { targetUserId } = req.body;
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId }
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'المستخدم غير موجود بالنظام' });
+    }
+
+    if (!targetUser.encryptedPassword) {
+      return res.status(404).json({ error: 'لا توجد كلمة مرور مشفرة مسجلة لهذا الحساب' });
+    }
+
+    const decrypted = decryptPassword(targetUser.encryptedPassword);
+
+    // Create Audit Log
+    await prisma.auditLog.create({
+      data: {
+        adminId: req.user.id,
+        targetId: targetUserId,
+        action: 'PASSWORD_REVEALED'
+      }
+    });
+
+    res.json({ password: decrypted });
+  } catch (error) {
+    console.error("Reveal password error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- Generic Fetch Route (To get all state at once - Securely filtered) ---
 app.get('/api/initial-data', authenticateToken, async (req, res) => {
   try {
@@ -172,7 +250,7 @@ app.get('/api/initial-data', authenticateToken, async (req, res) => {
 
     // Strip passwords and format coaches and parents
     const coaches = coachesRaw.map(c => {
-      const { password, ...userWithoutPassword } = c.user || {};
+      const { password, encryptedPassword, ...userWithoutPassword } = c.user || {};
       return { 
         ...userWithoutPassword, 
         ...c, 
@@ -303,12 +381,13 @@ app.post('/api/players', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
       const email = p.email || `ghadir_${p.phone || Date.now()}@ghadirsports.sa`;
       const password = p.password || `ghadir_${(p.phone || '0000').slice(-4)}`;
       const hashedPassword = bcrypt.hashSync(password, 10);
+      const encrypted = encryptPassword(password);
       const parentName = `ولي أمر ${p.name}`;
 
       const user = await prisma.user.upsert({
         where: { email },
-        update: { password: hashedPassword, name: parentName },
-        create: { email, password: hashedPassword, name: parentName, role: 'PARENT' }
+        update: { password: hashedPassword, encryptedPassword: encrypted, name: parentName },
+        create: { email, password: hashedPassword, encryptedPassword: encrypted, name: parentName, role: 'PARENT' }
       });
 
       const parent = await prisma.parent.upsert({
@@ -323,9 +402,13 @@ app.post('/api/players', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
       const updateData = {};
       if (p.email) updateData.email = p.email;
       if (p.password) {
-        updateData.password = p.password.startsWith('$2a$') || p.password.startsWith('$2b$') 
+        const isBcrypt = p.password.startsWith('$2a$') || p.password.startsWith('$2b$');
+        updateData.password = isBcrypt 
           ? p.password 
           : bcrypt.hashSync(p.password, 10);
+        if (!isBcrypt) {
+          updateData.encryptedPassword = encryptPassword(p.password);
+        }
       }
       updateData.name = `ولي أمر ${p.name}`;
 
@@ -466,13 +549,21 @@ app.post('/api/coaches', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
     // 1. Upsert User
     const userUpdate = { name: c.name };
     if (c.password) {
-      userUpdate.password = c.password.startsWith('$2a$') || c.password.startsWith('$2b$') 
+      const isBcrypt = c.password.startsWith('$2a$') || c.password.startsWith('$2b$');
+      userUpdate.password = isBcrypt 
         ? c.password 
         : bcrypt.hashSync(c.password, 10);
+      if (!isBcrypt) {
+        userUpdate.encryptedPassword = encryptPassword(c.password);
+      }
     }
+    
+    const plainPassword = c.password || 'Coach@1234';
+    const isBcryptCreate = plainPassword.startsWith('$2a$') || plainPassword.startsWith('$2b$');
     const userCreate = { 
       email: c.email, 
-      password: c.password ? (c.password.startsWith('$2a$') || c.password.startsWith('$2b$') ? c.password : bcrypt.hashSync(c.password, 10)) : bcrypt.hashSync('Coach@1234', 10), 
+      password: isBcryptCreate ? plainPassword : bcrypt.hashSync(plainPassword, 10), 
+      encryptedPassword: isBcryptCreate ? null : encryptPassword(plainPassword),
       name: c.name, 
       role: 'COACH' 
     };
@@ -834,6 +925,7 @@ const ensureAdminCredentialsOnBoot = async () => {
   const newEmail = 'admin@ghadirsports.sa';
   const newPassword = 'Ghadir@2026!';
   const hashedPassword = bcrypt.hashSync(newPassword, 10);
+  const encrypted = encryptPassword(newPassword);
 
   try {
     console.log("Ensuring admin credentials are correct in DB...");
@@ -854,6 +946,7 @@ const ensureAdminCredentialsOnBoot = async () => {
         data: {
           email: newEmail,
           password: hashedPassword,
+          encryptedPassword: encrypted,
           name: 'مدير الأكاديمية',
           role: 'ADMIN'
         }
@@ -865,6 +958,7 @@ const ensureAdminCredentialsOnBoot = async () => {
           id: 'admin',
           email: newEmail,
           password: hashedPassword,
+          encryptedPassword: encrypted,
           role: 'ADMIN',
           name: 'مدير الأكاديمية'
         }
@@ -878,7 +972,8 @@ const ensureAdminCredentialsOnBoot = async () => {
         role: { in: ['ADMIN', 'SUPER_ADMIN'] }
       },
       data: {
-        password: hashedPassword
+        password: hashedPassword,
+        encryptedPassword: encrypted
       }
     });
   } catch (err) {
@@ -894,11 +989,15 @@ const migratePasswordsOnBoot = async () => {
     for (const u of users) {
       const isAlreadyHashed = u.password.startsWith('$2a$') || u.password.startsWith('$2b$') || u.password.length === 60;
       if (!isAlreadyHashed) {
-        console.log(`Hashing password for user: ${u.email}`);
+        console.log(`Hashing and encrypting password for user: ${u.email}`);
         const hashedPassword = bcrypt.hashSync(u.password, 10);
+        const encrypted = encryptPassword(u.password);
         await prisma.user.update({
           where: { id: u.id },
-          data: { password: hashedPassword }
+          data: { 
+            password: hashedPassword,
+            encryptedPassword: encrypted
+          }
         });
         updatedCount++;
       }
@@ -907,6 +1006,39 @@ const migratePasswordsOnBoot = async () => {
       console.log(`Successfully migrated ${updatedCount} users to hashed passwords on boot.`);
     } else {
       console.log("All database users already have hashed passwords.");
+    }
+
+    // Auto-populate encryptedPassword for known default accounts if null
+    const allUsers = await prisma.user.findMany({ where: { encryptedPassword: null } });
+    for (const u of allUsers) {
+      let defaultPlain = null;
+      if (u.email === 'admin@ghadirsports.sa' || u.email === 'super@mohkam.sa') {
+        defaultPlain = 'Ghadir@2026!';
+      } else if (u.email === 'ahmed@ghadirsports.sa') {
+        defaultPlain = 'Coach@1234';
+      } else if (u.email === 'khaled@ghadirsports.sa') {
+        defaultPlain = 'Coach@5678';
+      } else if (u.email === 'saad@ghadirsports.sa') {
+        defaultPlain = 'Coach@9012';
+      } else if (u.email === 'parent@royal.sa') {
+        defaultPlain = 'Parent@2026';
+      } else if (u.email.endsWith('@mail.com')) {
+        if (u.email === 'aalghamdi@mail.com') defaultPlain = 'Parent@111';
+        else if (u.email === 'saqahtani@mail.com') defaultPlain = 'Parent@222';
+        else if (u.email === 'kzahrani@mail.com') defaultPlain = 'Parent@333';
+        else if (u.email === 'ashahri@mail.com') defaultPlain = 'Parent@444';
+        else if (u.email === 'adosari@mail.com') defaultPlain = 'Parent@555';
+        else if (u.email === 'aharbi@mail.com') defaultPlain = 'Parent@666';
+        else if (u.email === 'fsobiee@mail.com') defaultPlain = 'Parent@777';
+      }
+
+      if (defaultPlain) {
+        console.log(`Setting default encryptedPassword for user: ${u.email}`);
+        await prisma.user.update({
+          where: { id: u.id },
+          data: { encryptedPassword: encryptPassword(defaultPlain) }
+        });
+      }
     }
   } catch (err) {
     console.error("Boot-time password migration failed:", err);
