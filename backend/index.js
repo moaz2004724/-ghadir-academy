@@ -547,7 +547,7 @@ app.post('/api/coaches', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
   const c = req.body;
   try {
     // 1. Upsert User
-    const userUpdate = { name: c.name };
+    const userUpdate = { name: c.name, role: 'COACH' };
     if (c.password) {
       const isBcrypt = c.password.startsWith('$2a$') || c.password.startsWith('$2b$');
       userUpdate.password = isBcrypt 
@@ -1045,8 +1045,27 @@ const migratePasswordsOnBoot = async () => {
   }
 };
 
+const fixUserRolesOnBoot = async () => {
+  try {
+    console.log("Syncing user roles with profiles...");
+    const coaches = await prisma.coach.findMany({ include: { user: true } });
+    for (const c of coaches) {
+      if (c.user && c.user.role !== 'COACH' && c.user.role !== 'ADMIN' && c.user.role !== 'SUPER_ADMIN') {
+        console.log(`Fixing role to COACH for user: ${c.user.email}`);
+        await prisma.user.update({
+          where: { id: c.userId },
+          data: { role: 'COACH' }
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fix user roles on boot:", err);
+  }
+};
+
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   await ensureAdminCredentialsOnBoot();
   await migratePasswordsOnBoot();
+  await fixUserRolesOnBoot();
 });
