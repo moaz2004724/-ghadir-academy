@@ -122,7 +122,7 @@ const requireRole = (roles) => {
 // --- Health & Diagnostics ---
 app.get('/api/health', (req, res) => {
   const dbHost = (process.env.DATABASE_URL || '').replace(/:[^@]+@/, ':***@');
-  res.json({ status: 'ok', dbHost, version: 'secure-jwt-v3' });
+  res.json({ status: 'ok', dbHost, version: 'secure-jwt-v4' });
 });
 
 app.post('/api/reset-database', async (req, res) => {
