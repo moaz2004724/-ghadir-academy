@@ -2,12 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || 'ghadir-secret-2026-launch';
 
 const allowedOrigins = [
   'http://localhost:5173',
@@ -28,10 +31,53 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// --- Security Middlewares ---
+const authenticateToken = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'من فضلك سجل دخولك أولاً' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      include: {
+        coachProfile: true,
+        parentProfile: true,
+        playerProfile: true,
+      }
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'المستخدم غير موجود بالنظام' });
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: 'جلسة العمل غير صالحة أو انتهت صلاحيتها' });
+  }
+};
+
+const requireRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'غير مصرح بالدخول' });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'ليس لديك الصلاحيات الكافية لتنفيذ هذا الإجراء' });
+    }
+    next();
+  };
+};
+
 // --- Health & Diagnostics ---
 app.get('/api/health', (req, res) => {
   const dbHost = (process.env.DATABASE_URL || '').replace(/:[^@]+@/, ':***@');
-  res.json({ status: 'ok', dbHost, version: 'reset-v1' });
+  res.json({ status: 'ok', dbHost, version: 'secure-jwt-v1' });
 });
 
 app.post('/api/reset-database', async (req, res) => {
@@ -57,7 +103,7 @@ app.post('/api/reset-database', async (req, res) => {
       data: {
         id: "admin",
         email: "admin@ghadirsports.sa",
-        password: "Ghadir@2026!",
+        password: bcrypt.hashSync("Ghadir@2026!", 10),
         role: "ADMIN",
         name: "مدير الأكاديمية"
       }
@@ -69,7 +115,6 @@ app.post('/api/reset-database', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 // --- Auth Routes ---
 app.post('/api/login', async (req, res) => {
@@ -84,16 +129,20 @@ app.post('/api/login', async (req, res) => {
       }
     });
 
-    if (user && user.password === password) {
-      // Map database user to frontend user object structure
+    if (user && bcrypt.compareSync(password, user.password)) {
+      const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+      
       res.json({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role.toLowerCase(),
-        ...(user.coachProfile || {}),
-        ...(user.parentProfile || {}),
-        ...(user.playerProfile || {})
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role.toLowerCase(),
+          ...(user.coachProfile || {}),
+          ...(user.parentProfile || {}),
+          ...(user.playerProfile || {})
+        }
       });
     } else {
       res.status(401).json({ error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
@@ -103,56 +152,143 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// --- Generic Fetch Route (To get all state at once) ---
-app.get('/api/initial-data', async (req, res) => {
+// --- Generic Fetch Route (To get all state at once - Securely filtered) ---
+app.get('/api/initial-data', authenticateToken, async (req, res) => {
   try {
-    const [groups, coaches, players, payments, attendance, coachesAttendance, evals, messages, trainings, parentsRaw] = await Promise.all([
+    const role = req.user.role;
+    
+    // Fetch raw lists
+    const [groups, coachesRaw, playersRaw, paymentsRaw, attendanceRaw, evalsRaw, messagesRaw, trainingsRaw, parentsRaw] = await Promise.all([
       prisma.group.findMany(),
       prisma.coach.findMany({ include: { user: true } }),
       prisma.player.findMany(),
       prisma.payment.findMany(),
       prisma.attendance.findMany(),
-      prisma.attendance.findMany({ where: { coachId: { not: null } } }),
       prisma.evaluation.findMany(),
       prisma.message.findMany(),
       prisma.training.findMany(),
       prisma.parent.findMany({ include: { user: true } })
     ]);
 
-    const parents = parentsRaw.map(par => ({
-      id: par.id,
-      userId: par.userId,
-      name: par.user?.name || `ولي أمر`,
-      email: par.user?.email || '',
-      phone: par.user?.phone || '',
-      password: par.user?.password || ''
-    }));
-
-    res.json({
-      groups,
-      coaches: coaches.map(c => ({ 
-        ...c.user, 
+    // Strip passwords and format coaches and parents
+    const coaches = coachesRaw.map(c => {
+      const { password, ...userWithoutPassword } = c.user || {};
+      return { 
+        ...userWithoutPassword, 
         ...c, 
         id: c.id, 
-        userId: c.user.id,
+        userId: c.user?.id,
         user: undefined 
-      })),
-      players,
-      payments,
-      attendance,
-      coachesAttendance,
-      evals,
-      messages,
-      trainings,
-      parents
+      };
     });
+
+    const parents = parentsRaw.map(par => {
+      const { password, ...userWithoutPassword } = par.user || {};
+      return {
+        id: par.id,
+        userId: par.userId,
+        name: par.user?.name || `ولي أمر`,
+        email: par.user?.email || '',
+        phone: par.user?.phone || '',
+      };
+    });
+
+    // Remove passwords/sensitive fields from players
+    const players = playersRaw.map(p => {
+      const { password, ...pWithoutPassword } = p;
+      return pWithoutPassword;
+    });
+
+    // Filter based on roles (Role-Based Access Control)
+    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+      return res.json({
+        groups,
+        coaches,
+        players,
+        payments: paymentsRaw,
+        attendance: attendanceRaw,
+        coachesAttendance: attendanceRaw.filter(a => a.coachId !== null),
+        evals: evalsRaw,
+        messages: messagesRaw,
+        trainings: trainingsRaw,
+        parents
+      });
+    } else if (role === 'COACH') {
+      const coachProfile = req.user.coachProfile;
+      if (!coachProfile) {
+        return res.status(403).json({ error: 'ملف المدرب غير موجود' });
+      }
+      
+      const myGroupId = coachProfile.groupId;
+      const myGroupPlayers = players.filter(p => p.groupId === myGroupId);
+      const myPlayerIds = myGroupPlayers.map(p => p.id);
+
+      const filteredPlayers = myGroupPlayers;
+      const filteredPayments = paymentsRaw.filter(p => myPlayerIds.includes(p.playerId));
+      const filteredAttendance = attendanceRaw.filter(a => a.groupId === myGroupId);
+      const filteredEvals = evalsRaw.filter(e => e.coachId === coachProfile.id || myPlayerIds.includes(e.playerId));
+      const filteredTrainings = trainingsRaw.filter(t => t.groupId === myGroupId);
+      const filteredParents = parents.filter(par => myGroupPlayers.some(p => p.parentId === par.id));
+      
+      const filteredMessages = messagesRaw.filter(m => 
+        m.from === req.user.id || 
+        m.to === req.user.id ||
+        (m.to && m.to.startsWith('par_') && myPlayerIds.includes(m.to.replace('par_', '')))
+      );
+
+      return res.json({
+        groups,
+        coaches,
+        players: filteredPlayers,
+        payments: filteredPayments,
+        attendance: filteredAttendance,
+        coachesAttendance: filteredAttendance.filter(a => a.coachId !== null),
+        evals: filteredEvals,
+        messages: filteredMessages,
+        trainings: filteredTrainings,
+        parents: filteredParents
+      });
+    } else if (role === 'PARENT') {
+      const parentProfile = req.user.parentProfile;
+      if (!parentProfile) {
+        return res.status(403).json({ error: 'ملف ولي الأمر غير موجود' });
+      }
+
+      const myChildren = players.filter(p => p.parentId === parentProfile.id);
+      const myChildrenIds = myChildren.map(p => p.id);
+      const myChildrenGroupIds = myChildren.map(p => p.groupId).filter(Boolean);
+
+      const filteredPlayers = myChildren;
+      const filteredGroups = groups.filter(g => myChildrenGroupIds.includes(g.id));
+      const filteredPayments = paymentsRaw.filter(p => myChildrenIds.includes(p.playerId));
+      const filteredAttendance = attendanceRaw.filter(a => myChildrenGroupIds.includes(a.groupId));
+      const filteredEvals = evalsRaw.filter(e => myChildrenIds.includes(e.playerId));
+      const filteredTrainings = trainingsRaw.filter(t => myChildrenGroupIds.includes(t.groupId));
+      const filteredMessages = messagesRaw.filter(m => m.from === req.user.id || m.to === req.user.id);
+      const filteredParents = parents.filter(par => par.id === parentProfile.id);
+
+      return res.json({
+        groups: filteredGroups,
+        coaches,
+        players: filteredPlayers,
+        payments: filteredPayments,
+        attendance: filteredAttendance,
+        coachesAttendance: [],
+        evals: filteredEvals,
+        messages: filteredMessages,
+        trainings: filteredTrainings,
+        parents: filteredParents
+      });
+    } else {
+      return res.status(403).json({ error: 'غير مصرح لهذا الدور بالوصول للبيانات' });
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // --- Specific Update Routes ---
-app.post('/api/players', async (req, res) => {
+app.post('/api/players', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const p = req.body;
   try {
     let resolvedParentId = p.parentId;
@@ -166,12 +302,13 @@ app.post('/api/players', async (req, res) => {
       // Parent doesn't exist yet — create User + Parent from player's email/phone
       const email = p.email || `ghadir_${p.phone || Date.now()}@ghadirsports.sa`;
       const password = p.password || `ghadir_${(p.phone || '0000').slice(-4)}`;
+      const hashedPassword = bcrypt.hashSync(password, 10);
       const parentName = `ولي أمر ${p.name}`;
 
       const user = await prisma.user.upsert({
         where: { email },
-        update: { password, name: parentName },
-        create: { email, password, name: parentName, role: 'PARENT' }
+        update: { password: hashedPassword, name: parentName },
+        create: { email, password: hashedPassword, name: parentName, role: 'PARENT' }
       });
 
       const parent = await prisma.parent.upsert({
@@ -185,7 +322,11 @@ app.post('/api/players', async (req, res) => {
       // Parent exists — update User details if provided
       const updateData = {};
       if (p.email) updateData.email = p.email;
-      if (p.password) updateData.password = p.password;
+      if (p.password) {
+        updateData.password = p.password.startsWith('$2a$') || p.password.startsWith('$2b$') 
+          ? p.password 
+          : bcrypt.hashSync(p.password, 10);
+      }
       updateData.name = `ولي أمر ${p.name}`;
 
       await prisma.user.update({
@@ -213,7 +354,6 @@ app.post('/api/players', async (req, res) => {
     }
 
     // Create or update the Player record
-    // Safe upsert: try update first, fall back to create
     let player;
     const existing = p.id ? await prisma.player.findUnique({ where: { id: p.id } }) : null;
 
@@ -260,8 +400,7 @@ app.post('/api/players', async (req, res) => {
   }
 });
 
-
-app.post('/api/payments', async (req, res) => {
+app.post('/api/payments', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN', 'COACH']), async (req, res) => {
   try {
     const { id, playerId, playerName, coachId, coachName, type, month, amount, date, note, discount } = req.body;
     const resolvedDiscount = (discount !== undefined && discount !== null && !isNaN(discount)) ? parseFloat(discount) : 0;
@@ -301,7 +440,7 @@ app.post('/api/payments', async (req, res) => {
 });
 
 // Save Attendance
-app.post('/api/attendance', async (req, res) => {
+app.post('/api/attendance', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN', 'COACH']), async (req, res) => {
   try {
     const a = req.body;
     const att = await prisma.attendance.upsert({
@@ -321,14 +460,27 @@ app.post('/api/attendance', async (req, res) => {
   }
 });
 
-app.post('/api/coaches', async (req, res) => {
+app.post('/api/coaches', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const c = req.body;
   try {
     // 1. Upsert User
+    const userUpdate = { name: c.name };
+    if (c.password) {
+      userUpdate.password = c.password.startsWith('$2a$') || c.password.startsWith('$2b$') 
+        ? c.password 
+        : bcrypt.hashSync(c.password, 10);
+    }
+    const userCreate = { 
+      email: c.email, 
+      password: c.password ? (c.password.startsWith('$2a$') || c.password.startsWith('$2b$') ? c.password : bcrypt.hashSync(c.password, 10)) : bcrypt.hashSync('Coach@1234', 10), 
+      name: c.name, 
+      role: 'COACH' 
+    };
+
     const user = await prisma.user.upsert({
       where: { email: c.email },
-      update: { password: c.password, name: c.name },
-      create: { email: c.email, password: c.password, name: c.name, role: 'COACH' }
+      update: userUpdate,
+      create: userCreate
     });
 
     // 2. Resolve Unique Constraint on groupId in Coach table
@@ -396,7 +548,7 @@ app.post('/api/coaches', async (req, res) => {
   }
 });
 
-app.post('/api/groups', async (req, res) => {
+app.post('/api/groups', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const g = req.body;
   try {
     const coachId = g.coachId || null;
@@ -453,7 +605,7 @@ app.post('/api/groups', async (req, res) => {
   }
 });
 
-app.post('/api/trainings', async (req, res) => {
+app.post('/api/trainings', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const t = req.body;
   try {
     let resolvedCoachId = t.coachId;
@@ -507,9 +659,15 @@ app.post('/api/trainings', async (req, res) => {
   }
 });
 
-app.post('/api/messages', async (req, res) => {
+app.post('/api/messages', authenticateToken, async (req, res) => {
   try {
     const { id, from, to, fromName, toName, text, files, date, read } = req.body;
+    
+    // Prevent sender spoofing
+    if (from !== req.user.id) {
+      return res.status(403).json({ error: 'غير مصرح بإرسال رسائل باسم حساب آخر' });
+    }
+
     const msg = await prisma.message.upsert({
       where: { id: id || 'new' },
       update: { read },
@@ -523,7 +681,7 @@ app.post('/api/messages', async (req, res) => {
 });
 
 // --- Evaluations Routes ---
-app.post('/api/evaluations', async (req, res) => {
+app.post('/api/evaluations', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN', 'COACH']), async (req, res) => {
   const e = req.body;
   try {
     const evaluation = await prisma.evaluation.upsert({
@@ -563,7 +721,7 @@ app.post('/api/evaluations', async (req, res) => {
 });
 
 // --- Delete Routes ---
-app.delete('/api/players/:id', async (req, res) => {
+app.delete('/api/players/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.$transaction([
@@ -578,7 +736,7 @@ app.delete('/api/players/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/groups/:id', async (req, res) => {
+app.delete('/api/groups/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.$transaction([
@@ -595,7 +753,7 @@ app.delete('/api/groups/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/coaches/:id', async (req, res) => {
+app.delete('/api/coaches/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.$transaction([
@@ -612,7 +770,7 @@ app.delete('/api/coaches/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/payments/:id', async (req, res) => {
+app.delete('/api/payments/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.payment.delete({ where: { id } });
@@ -623,7 +781,7 @@ app.delete('/api/payments/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/trainings/:id', async (req, res) => {
+app.delete('/api/trainings/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.training.delete({ where: { id } });
@@ -634,7 +792,7 @@ app.delete('/api/trainings/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/attendance/:id', async (req, res) => {
+app.delete('/api/attendance/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN', 'COACH']), async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.attendance.delete({ where: { id } });
@@ -645,7 +803,7 @@ app.delete('/api/attendance/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/evaluations/:id', async (req, res) => {
+app.delete('/api/evaluations/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN', 'COACH']), async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.evaluation.delete({ where: { id } });
@@ -656,9 +814,14 @@ app.delete('/api/evaluations/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/messages/:id', async (req, res) => {
+app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
+    // Only verify message sender if not admin
+    const msg = await prisma.message.findUnique({ where: { id } });
+    if (msg && msg.from !== req.user.id && req.user.role !== 'ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: 'غير مصرح بحذف هذه الرسالة' });
+    }
     await prisma.message.delete({ where: { id } });
     res.json({ success: true });
   } catch (e) {
@@ -670,4 +833,3 @@ app.delete('/api/messages/:id', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-

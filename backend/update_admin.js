@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -8,17 +9,18 @@ const prisma = new PrismaClient();
 async function updateAdminCredentials() {
   const newEmail = 'admin@ghadirsports.sa';
   const newPassword = 'Ghadir@2026!';
+  const hashedPassword = bcrypt.hashSync(newPassword, 10);
 
   console.log('Updating Admin credentials in PostgreSQL database...');
 
   try {
-    // 1. Update all ADMIN and SUPER_ADMIN user passwords to newPassword
+    // 1. Update all ADMIN and SUPER_ADMIN user passwords to hashedPassword
     const updatedCount = await prisma.user.updateMany({
       where: {
         role: { in: ['ADMIN', 'SUPER_ADMIN'] }
       },
       data: {
-        password: newPassword
+        password: hashedPassword
       }
     });
 
@@ -41,7 +43,7 @@ async function updateAdminCredentials() {
         where: { id: existingMainAdmin.id },
         data: {
           email: newEmail,
-          password: newPassword,
+          password: hashedPassword,
           name: 'مدير الأكاديمية'
         }
       });
@@ -50,7 +52,7 @@ async function updateAdminCredentials() {
         data: {
           id: 'admin',
           email: newEmail,
-          password: newPassword,
+          password: hashedPassword,
           role: 'ADMIN',
           name: 'مدير الأكاديمية'
         }
@@ -63,7 +65,7 @@ async function updateAdminCredentials() {
         role: 'ADMIN'
       },
       data: {
-        password: newPassword
+        password: hashedPassword
       }
     });
 

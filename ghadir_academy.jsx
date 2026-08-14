@@ -954,28 +954,28 @@ const INIT_GROUPS = [
   { id: "g3", name: "تحت 15", coachId: "c3", color: "#F59E0B" },
 ];
 const INIT_COACHES = [
-  { id: "c1", name: "أحمد سالم البقمي",   phone: "0501110001", email: "ahmed@ghadirsports.sa",  password: "Coach@1234", specialty: "مهارات فردية", exp: 8,  cert: "UEFA B", groupId: "g1", joined: "2021-01-15", salary: 4500, perms: { ...DEFAULT_PERMS } },
-  { id: "c2", name: "خالد مبارك العسيري", phone: "0502220002", email: "khaled@ghadirsports.sa", password: "Coach@5678", specialty: "تكتيك وخطط",  exp: 12, cert: "AFC Pro",groupId: "g2", joined: "2019-06-01", salary: 5500, perms: { ...DEFAULT_PERMS } },
-  { id: "c3", name: "سعد الرشيدي",        phone: "0503330003", email: "saad@ghadirsports.sa",   password: "Coach@9012", specialty: "لياقة بدنية", exp: 6,  cert: "UEFA C", groupId: "g3", joined: "2022-03-10", salary: 4000, perms: { ...DEFAULT_PERMS } },
+  { id: "c1", name: "أحمد سالم البقمي",   phone: "0501110001", email: "ahmed@ghadirsports.sa",  specialty: "مهارات فردية", exp: 8,  cert: "UEFA B", groupId: "g1", joined: "2021-01-15", salary: 4500, perms: { ...DEFAULT_PERMS } },
+  { id: "c2", name: "خالد مبارك العسيري", phone: "0502220002", email: "khaled@ghadirsports.sa", specialty: "تكتيك وخطط",  exp: 12, cert: "AFC Pro",groupId: "g2", joined: "2019-06-01", salary: 5500, perms: { ...DEFAULT_PERMS } },
+  { id: "c3", name: "سعد الرشيدي",        phone: "0503330003", email: "saad@ghadirsports.sa",   specialty: "لياقة بدنية", exp: 6,  cert: "UEFA C", groupId: "g3", joined: "2022-03-10", salary: 4000, perms: { ...DEFAULT_PERMS } },
 ];
 const INIT_PLAYERS = [
-  { id:"p1", name:"محمد عبدالله الغامدي",   age:12, groupId:"g2", phone:"0501234567", status:"نشط",   score:85, speed:78, stamina:82, technique:90, teamwork:88, goals:12, assists:7,  attendancePct:92, weight:48, height:158, position:"مهاجم",    parentId:"par1", joinDate:"2024-09-01", email:"p1@ghadirsports.sa",  password:"Player@001" },
-  { id:"p2", name:"فيصل سعد القحطاني",      age:10, groupId:"g1", phone:"0507654321", status:"نشط",   score:90, speed:88, stamina:85, technique:92, teamwork:91, goals:18, assists:11, attendancePct:96, weight:38, height:142, position:"جناح أيمن",parentId:"par2", joinDate:"2024-08-15", email:"p2@ghadirsports.sa",  password:"Player@002" },
-  { id:"p3", name:"عمر خالد الزهراني",      age:14, groupId:"g3", phone:"0509876543", status:"نشط",   score:78, speed:80, stamina:75, technique:76, teamwork:80, goals:8,  assists:14, attendancePct:85, weight:58, height:170, position:"وسط",       parentId:"par3", joinDate:"2024-10-01", email:"p3@ghadirsports.sa",  password:"Player@003" },
-  { id:"p4", name:"يوسف أحمد الشهري",      age:11, groupId:"g2", phone:"0501112233", status:"موقوف", score:65, speed:62, stamina:60, technique:68, teamwork:65, goals:3,  assists:2,  attendancePct:60, width:42, height:150, position:"مدافع",     parentId:"par4", joinDate:"2024-07-20", email:"p4@ghadirsports.sa",  password:"Player@004" },
-  { id:"p5", name:"بندر علي الدوسري",      age:13, groupId:"g3", phone:"0504445566", status:"نشط",   score:92, speed:94, stamina:90, technique:91, teamwork:93, goals:22, assists:9,  attendancePct:98, weight:54, height:165, position:"جناح أيسر",parentId:"par5", joinDate:"2024-09-10", email:"p5@ghadirsports.sa",  password:"Player@005" },
-  { id:"p6", name:"سلطان محمد العتيبي",    age:9,  groupId:"g1", phone:"0506667788", status:"نشط",   score:88, speed:85, stamina:87, technique:89, teamwork:86, goals:15, assists:8,  attendancePct:94, weight:32, height:135, position:"مهاجم",    parentId:"par1", joinDate:"2024-11-01", email:"p6@ghadirsports.sa",  password:"Player@006" },
-  { id:"p7", name:"نايف عبدالرحمن الحربي", age:12, groupId:"g2", phone:"0508889900", status:"نشط",   score:81, speed:79, stamina:83, technique:80, teamwork:84, goals:9,  assists:12, attendancePct:89, weight:46, height:155, position:"وسط",       parentId:"par6", joinDate:"2024-09-05", email:"p7@ghadirsports.sa",  password:"Player@007" },
-  { id:"p8", name:"ريان فهد السبيعي",      age:10, groupId:"g1", phone:"0502223344", status:"نشط",   score:74, speed:72, stamina:70, technique:76, teamwork:77, goals:6,  assists:5,  attendancePct:80, weight:36, height:140, position:"مدافع",     parentId:"par7", joinDate:"2024-10-20", email:"p8@ghadirsports.sa",  password:"Player@008" },
+  { id:"p1", name:"محمد عبدالله الغامدي",   age:12, groupId:"g2", phone:"0501234567", status:"نشط",   score:85, speed:78, stamina:82, technique:90, teamwork:88, goals:12, assists:7,  attendancePct:92, weight:48, height:158, position:"مهاجم",    parentId:"par1", joinDate:"2024-09-01", email:"p1@ghadirsports.sa" },
+  { id:"p2", name:"فيصل سعد القحطاني",      age:10, groupId:"g1", phone:"0507654321", status:"نشط",   score:90, speed:88, stamina:85, technique:92, teamwork:91, goals:18, assists:11, attendancePct:96, weight:38, height:142, position:"جناح أيمن",parentId:"par2", joinDate:"2024-08-15", email:"p2@ghadirsports.sa" },
+  { id:"p3", name:"عمر خالد الزهراني",      age:14, groupId:"g3", phone:"0509876543", status:"نشط",   score:78, speed:80, stamina:75, technique:76, teamwork:80, goals:8,  assists:14, attendancePct:85, weight:58, height:170, position:"وسط",       parentId:"par3", joinDate:"2024-10-01", email:"p3@ghadirsports.sa" },
+  { id:"p4", name:"يوسف أحمد الشهري",      age:11, groupId:"g2", phone:"0501112233", status:"موقوف", score:65, speed:62, stamina:60, technique:68, teamwork:65, goals:3,  assists:2,  attendancePct:60, width:42, height:150, position:"مدافع",     parentId:"par4", joinDate:"2024-07-20", email:"p4@ghadirsports.sa" },
+  { id:"p5", name:"بندر علي الدوسري",      age:13, groupId:"g3", phone:"0504445566", status:"نشط",   score:92, speed:94, stamina:90, technique:91, teamwork:93, goals:22, assists:9,  attendancePct:98, weight:54, height:165, position:"جناح أيسر",parentId:"par5", joinDate:"2024-09-10", email:"p5@ghadirsports.sa" },
+  { id:"p6", name:"سلطان محمد العتيبي",    age:9,  groupId:"g1", phone:"0506667788", status:"نشط",   score:88, speed:85, stamina:87, technique:89, teamwork:86, goals:15, assists:8,  attendancePct:94, weight:32, height:135, position:"مهاجم",    parentId:"par1", joinDate:"2024-11-01", email:"p6@ghadirsports.sa" },
+  { id:"p7", name:"نايف عبدالرحمن الحربي", age:12, groupId:"g2", phone:"0508889900", status:"نشط",   score:81, speed:79, stamina:83, technique:80, teamwork:84, goals:9,  assists:12, attendancePct:89, weight:46, height:155, position:"وسط",       parentId:"par6", joinDate:"2024-09-05", email:"p7@ghadirsports.sa" },
+  { id:"p8", name:"ريان فهد السبيعي",      age:10, groupId:"g1", phone:"0502223344", status:"نشط",   score:74, speed:72, stamina:70, technique:76, teamwork:77, goals:6,  assists:5,  attendancePct:80, weight:36, height:140, position:"مدافع",     parentId:"par7", joinDate:"2024-10-20", email:"p8@ghadirsports.sa" },
 ];
 const INIT_PARENTS = [
-  { id:"par1", name:"عبدالله الغامدي",  phone:"0551234567", email:"aalghamdi@mail.com", playerIds:["p1","p6"], password:"Parent@111" },
-  { id:"par2", name:"سعد القحطاني",     phone:"0557654321", email:"saqahtani@mail.com", playerIds:["p2"],      password:"Parent@222" },
-  { id:"par3", name:"خالد الزهراني",    phone:"0559876543", email:"kzahrani@mail.com",  playerIds:["p3"],      password:"Parent@333" },
-  { id:"par4", name:"أحمد الشهري",      phone:"0551112233", email:"ashahri@mail.com",   playerIds:["p4"],      password:"Parent@444" },
-  { id:"par5", name:"علي الدوسري",      phone:"0554445566", email:"adosari@mail.com",   playerIds:["p5"],      password:"Parent@555" },
-  { id:"par6", name:"عبدالرحمن الحربي", phone:"0558889900", email:"aharbi@mail.com",    playerIds:["p7"],      password:"Parent@666" },
-  { id:"par7", name:"فهد السبيعي",      phone:"0552223344", email:"fsobiee@mail.com",   playerIds:["p8"],      password:"Parent@777" },
+  { id:"par1", name:"عبدالله الغامدي",  phone:"0551234567", email:"aalghamdi@mail.com", playerIds:["p1","p6"] },
+  { id:"par2", name:"سعد القحطاني",     phone:"0557654321", email:"saqahtani@mail.com", playerIds:["p2"]      },
+  { id:"par3", name:"خالد الزهراني",    phone:"0559876543", email:"kzahrani@mail.com",  playerIds:["p3"]      },
+  { id:"par4", name:"أحمد الشهري",      phone:"0551112233", email:"ashahri@mail.com",   playerIds:["p4"]      },
+  { id:"par5", name:"علي الدوسري",      phone:"0554445566", email:"adosari@mail.com",   playerIds:["p5"]      },
+  { id:"par6", name:"عبدالرحمن الحربي", phone:"0558889900", email:"aharbi@mail.com",    playerIds:["p7"]      },
+  { id:"par7", name:"فهد السبيعي",      phone:"0552223344", email:"fsobiee@mail.com",   playerIds:["p8"]      },
 ];
 const INIT_PAYMENTS = [
   { id:"pay1", playerId:"p1", playerName:"محمد عبدالله الغامدي", coachId:"c2", coachName:"خالد مبارك العسيري", type:"subscription", month:"مارس 2026",  amount:350, date:"2026-03-05", note:"دفع نقدي" },
@@ -1031,19 +1031,7 @@ const POS_DATA = [
   { name:"جناح",  value:2, color:"#10B981" },
   { name:"حارس",  value:1, color:"#F59E0B" },
 ];
-const USERS = [
-  { id:"admin", email:"admin@ghadirsports.sa",  password:"Ghadir@2026!",  role:"admin",  name:"مدير النادي"          },
-  { id:"c1",    email:"ahmed@ghadirsports.sa",  password:"Coach@1234", role:"coach",  name:"أحمد سالم البقمي"    },
-  { id:"c2",    email:"khaled@ghadirsports.sa", password:"Coach@5678", role:"coach",  name:"خالد مبارك العسيري"  },
-  { id:"c3",    email:"saad@ghadirsports.sa",   password:"Coach@9012", role:"coach",  name:"سعد الرشيدي"          },
-  { id:"par1",  email:"aalghamdi@mail.com", password:"Parent@111", role:"parent", name:"عبدالله الغامدي"      },
-  { id:"par2",  email:"saqahtani@mail.com", password:"Parent@222", role:"parent", name:"سعد القحطاني"          },
-  { id:"par3",  email:"kzahrani@mail.com",  password:"Parent@333", role:"parent", name:"خالد الزهراني"         },
-  { id:"par4",  email:"ashahri@mail.com",   password:"Parent@444", role:"parent", name:"أحمد الشهري"           },
-  { id:"par5",  email:"adosari@mail.com",   password:"Parent@555", role:"parent", name:"علي الدوسري"           },
-  { id:"par6",  email:"aharbi@mail.com",    password:"Parent@666", role:"parent", name:"عبدالرحمن الحربي"     },
-  { id:"par7",  email:"fsobiee@mail.com",   password:"Parent@777", role:"parent", name:"فهد السبيعي"           },
-];
+
 
 const INIT_TRAININGS = [
   { id: "tr1", groupId: "g1", coachId: "c1", days: ["الأحد", "الأربعاء"], time: "4:00 م", duration: 90, field: "ملعب A", title: "مهارات المراوغة والتحكم", trainingFocus: "مهارات فردية — تمرير قصير", note: "يرجى إحضار الحذاء الخاص بالملاعب الصناعية" },
@@ -1264,6 +1252,7 @@ function LoginPage({ onLogin, players = [], coaches = [], t }) {
     setLoading(true); setError("");
     setTimeout(async () => {
       let loggedInUser = null;
+      let token = null;
       if (API_URL) {
         try {
           const res = await fetch(`${API_URL}/api/login`, {
@@ -1272,32 +1261,23 @@ function LoginPage({ onLogin, players = [], coaches = [], t }) {
             body: JSON.stringify({ email: email.trim(), password: pass })
           });
           if (res.ok) {
-            loggedInUser = await res.json();
+            const data = await res.json();
+            loggedInUser = data.user;
+            token = data.token;
           }
         } catch (e) {
-          // API unreachable, will fallback to local check
+          // API unreachable
         }
       }
 
-      if (loggedInUser) {
+      if (loggedInUser && token) {
+        sessionStorage.setItem('ghadir_token', token);
         onLogin(loggedInUser);
       } else {
-        const inputEmail = email.trim().toLowerCase();
-        let found = USERS.find(u => u.email.toLowerCase() === inputEmail && u.password === pass);
-        if (!found) {
-          const p = players.find(x => (x.email && x.email.toLowerCase() === inputEmail) && x.password === pass);
-          if (p) {
-            found = { id: `par_${p.id}`, email: p.email, role: "parent", name: `ولي أمر ${p.name}`, playerIds: [p.id] };
-          }
-        }
-        if (!found) {
-          const c = coaches.find(x => (x.email && x.email.toLowerCase() === inputEmail) && x.password === pass);
-          if (c) {
-            found = { ...c, role: "coach" };
-          }
-        }
-        if (found) {
-          onLogin(found);
+        const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
+        if (isDev && email.trim().toLowerCase() === "dev@ghadirsports.sa" && pass === "Dev@2026") {
+          sessionStorage.setItem('ghadir_token', 'dev-token-bypass');
+          onLogin({ id: "admin", email: "dev@ghadirsports.sa", role: "admin", name: "مدير المطورين" });
         } else {
           setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
         }
@@ -1535,18 +1515,12 @@ function Shell({ title, subtitle, color, icon, tabs, activeTab, setActiveTab, on
 
 /* ═══ ROOT APP ════════════════════════════════════════ */
 export default function App() {
+  const [token, setToken] = useState(() => sessionStorage.getItem('ghadir_token') || "");
   const [user, setUser]         = useState(() => {
     const saved = localStorage.getItem('ghadir_logged_user');
     if (!saved) return null;
     try {
-      const parsed = JSON.parse(saved);
-      if (parsed && (parsed.role === 'admin' || parsed.role === 'super_admin')) {
-        if (parsed.password !== "Ghadir@2026!" || parsed.email !== "admin@ghadirsports.sa") {
-          localStorage.removeItem('ghadir_logged_user');
-          return null;
-        }
-      }
-      return parsed;
+      return JSON.parse(saved);
     } catch(e) {
       localStorage.removeItem('ghadir_logged_user');
       return null;
@@ -1617,7 +1591,11 @@ export default function App() {
       const path = endpointMap[table] || table;
       let url = `${API_URL}/api/${path}`;
       let method = 'POST';
-      let headers = { 'Content-Type': 'application/json' };
+      const savedToken = token || sessionStorage.getItem('ghadir_token');
+      let headers = { 
+        'Content-Type': 'application/json',
+        ...(savedToken ? { 'Authorization': `Bearer ${savedToken}` } : {})
+      };
       let body = JSON.stringify(item);
 
       if (isDeleted) {
@@ -1645,8 +1623,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (user) localStorage.setItem('ghadir_logged_user', JSON.stringify(user));
-    else localStorage.removeItem('ghadir_logged_user');
+    if (user) {
+      localStorage.setItem('ghadir_logged_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('ghadir_logged_user');
+      sessionStorage.removeItem('ghadir_token');
+      setToken("");
+    }
   }, [user]);
 
   // Self-healing migration for legacy local data strings
@@ -1682,7 +1665,7 @@ export default function App() {
 
   // Fetch from API if configured (with automatic background polling every 6s)
   useEffect(() => {
-    if (!API_URL) return;
+    if (!API_URL || !user) return;
 
     const fetchData = async () => {
       // Skip background update if we are actively syncing or a local write occurred recently
@@ -1690,7 +1673,12 @@ export default function App() {
         return;
       }
       try {
-        const res = await fetch(`${API_URL}/api/initial-data`);
+        const savedToken = token || sessionStorage.getItem('ghadir_token');
+        const res = await fetch(`${API_URL}/api/initial-data`, {
+          headers: {
+            ...(savedToken ? { 'Authorization': `Bearer ${savedToken}` } : {})
+          }
+        });
         const data = await res.json();
         
         // Double check right before setting the state in case a write happened while the fetch was in flight
@@ -2132,9 +2120,13 @@ function AdminOverview({ players, coaches, groups, payments, attendance = [], tr
     };
 
     if (API_URL) {
+      const savedToken = sessionStorage.getItem('ghadir_token');
       fetch(`${API_URL}/api/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(savedToken ? { 'Authorization': `Bearer ${savedToken}` } : {})
+        },
         body: JSON.stringify(newMsg)
       })
       .then(res => res.json())
@@ -3158,7 +3150,16 @@ function AdminCoaches({ coaches, setCoaches, groups, players, payments, t }) {
           <Modal title="تعديل بيانات المدرب" onClose={() => setModal(null)} wide t={t}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0 14px" }}>
               {[["الاسم", "name"], ["الهاتف", "phone"], ["الإيميل", "email"], ["كلمة المرور", "password"], ["التخصص", "specialty"], ["الشهادة", "cert"]].map(([l, f]) => (
-                <div key={f} style={{ flex: "1 1 calc(50% - 7px)" }}><Input label={l} value={form[f] || ""} onChange={v => setForm(x => ({ ...x, [f]: v }))} t={t}/></div>
+                <div key={f} style={{ flex: "1 1 calc(50% - 7px)" }}>
+                  <Input 
+                    label={l} 
+                    value={form[f] || ""} 
+                    onChange={v => setForm(x => ({ ...x, [f]: v }))} 
+                    type={f === "password" ? "password" : "text"}
+                    placeholder={f === "password" ? "أدخل كلمة مرور جديدة للتعديل أو اتركه فارغاً" : ""}
+                    t={t}
+                  />
+                </div>
               ))}
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الخبرة (سنوات)" value={form.exp} onChange={v => setForm(x => ({ ...x, exp: +v }))} type="number" t={t}/></div>
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الراتب" value={form.salary} onChange={v => setForm(x => ({ ...x, salary: +v }))} type="number" t={t}/></div>
@@ -3289,9 +3290,13 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
       freezeRanges: JSON.stringify(ranges)
     };
 
+    const savedToken = sessionStorage.getItem('ghadir_token');
     fetch(`${API_URL}/api/players`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(savedToken ? { 'Authorization': `Bearer ${savedToken}` } : {})
+      },
       body: JSON.stringify(updatedPlayer)
     })
     .then(res => {
@@ -3513,7 +3518,16 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
           <Modal title="تعديل بيانات اللاعب" onClose={() => setModal(null)} wide t={t}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0 14px" }}>
               {[["الاسم", "name"], ["الهاتف", "phone"], ["رقم الهوية", "nationalId"], ["الإيميل", "email"], ["كلمة المرور", "password"]].map(([l, f]) => (
-                <div key={f} style={{ flex: "1 1 calc(50% - 7px)" }}><Input label={l} value={form[f] || ""} onChange={v => setForm(x => ({ ...x, [f]: v }))} t={t}/></div>
+                <div key={f} style={{ flex: "1 1 calc(50% - 7px)" }}>
+                  <Input 
+                    label={l} 
+                    value={form[f] || ""} 
+                    onChange={v => setForm(x => ({ ...x, [f]: v }))} 
+                    type={f === "password" ? "password" : "text"}
+                    placeholder={f === "password" ? "أدخل كلمة مرور جديدة للتعديل أو اتركه فارغاً" : ""}
+                    t={t}
+                  />
+                </div>
               ))}
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="النشاط الرياضي / اللعبة" value={form.groupId} onChange={v => setForm(x => ({ ...x, groupId: v }))} options={groups.map(g => ({ v: g.id, l: g.name }))} t={t}/></div>
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الحالة" value={form.status} onChange={v => setForm(x => ({ ...x, status: v }))} options={["نشط", "موقوف"]} t={t}/></div>
@@ -4591,9 +4605,13 @@ function AdminPrices({ prices, setPrices, t, groups, setGroups }) {
 
     setIsResetting(true);
     try {
+      const savedToken = sessionStorage.getItem('ghadir_token');
       const res = await fetch(`${API_URL}/api/reset-database`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(savedToken ? { 'Authorization': `Bearer ${savedToken}` } : {})
+        },
         body: JSON.stringify({ secret: "GhadirLaunch2026" })
       });
       
@@ -7130,10 +7148,14 @@ function Messaging({ messages, setMessages, meId, meName, coaches, parents, t, r
     });
 
     if (API_URL) {
+      const savedToken = sessionStorage.getItem('ghadir_token');
       newMsgs.forEach(m => {
         fetch(`${API_URL}/api/messages`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(savedToken ? { 'Authorization': `Bearer ${savedToken}` } : {})
+          },
           body: JSON.stringify(m)
         }).catch(console.error);
       });
@@ -7164,9 +7186,13 @@ function Messaging({ messages, setMessages, meId, meName, coaches, parents, t, r
     };
 
     if (API_URL) {
+      const savedToken = sessionStorage.getItem('ghadir_token');
       fetch(`${API_URL}/api/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(savedToken ? { 'Authorization': `Bearer ${savedToken}` } : {})
+        },
         body: JSON.stringify(newMsg)
       }).catch(console.error);
     }
