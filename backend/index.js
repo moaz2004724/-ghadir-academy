@@ -77,7 +77,7 @@ const requireRole = (roles) => {
 // --- Health & Diagnostics ---
 app.get('/api/health', (req, res) => {
   const dbHost = (process.env.DATABASE_URL || '').replace(/:[^@]+@/, ':***@');
-  res.json({ status: 'ok', dbHost, version: 'secure-jwt-v2' });
+  res.json({ status: 'ok', dbHost, version: 'secure-jwt-v3' });
 });
 
 app.post('/api/reset-database', async (req, res) => {
@@ -830,6 +830,62 @@ app.delete('/api/messages/:id', authenticateToken, async (req, res) => {
   }
 });
 
+const ensureAdminCredentialsOnBoot = async () => {
+  const newEmail = 'admin@ghadirsports.sa';
+  const newPassword = 'Ghadir@2026!';
+  const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+  try {
+    console.log("Ensuring admin credentials are correct in DB...");
+    const existingMainAdmin = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: newEmail },
+          { id: 'admin' },
+          { id: 'royal-admin-id' },
+          { id: 'ghadir-admin-id' }
+        ]
+      }
+    });
+
+    if (existingMainAdmin) {
+      await prisma.user.update({
+        where: { id: existingMainAdmin.id },
+        data: {
+          email: newEmail,
+          password: hashedPassword,
+          name: 'مدير الأكاديمية',
+          role: 'ADMIN'
+        }
+      });
+      console.log(`Updated existing admin credentials to email: ${newEmail}`);
+    } else {
+      await prisma.user.create({
+        data: {
+          id: 'admin',
+          email: newEmail,
+          password: hashedPassword,
+          role: 'ADMIN',
+          name: 'مدير الأكاديمية'
+        }
+      });
+      console.log(`Created new admin credentials with email: ${newEmail}`);
+    }
+
+    // Also update any other admin/super_admin passwords to be secure
+    await prisma.user.updateMany({
+      where: {
+        role: { in: ['ADMIN', 'SUPER_ADMIN'] }
+      },
+      data: {
+        password: hashedPassword
+      }
+    });
+  } catch (err) {
+    console.error("Failed to ensure admin credentials on boot:", err);
+  }
+};
+
 const migratePasswordsOnBoot = async () => {
   try {
     console.log("Checking database users for plain text passwords...");
@@ -859,5 +915,6 @@ const migratePasswordsOnBoot = async () => {
 
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  await ensureAdminCredentialsOnBoot();
   await migratePasswordsOnBoot();
 });
