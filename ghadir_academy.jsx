@@ -1357,12 +1357,12 @@ function LoginPage({ onLogin, players = [], coaches = [], t }) {
 
       if (loggedInUser && token) {
         sessionStorage.setItem('ghadir_token', token);
-        onLogin(loggedInUser);
+        onLogin(loggedInUser, token);
       } else {
         const isDev = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV;
         if (isDev && email.trim().toLowerCase() === "dev@ghadirsports.sa" && pass === "Dev@2026") {
           sessionStorage.setItem('ghadir_token', 'dev-token-bypass');
-          onLogin({ id: "admin", email: "dev@ghadirsports.sa", role: "admin", name: "مدير المطورين" });
+          onLogin({ id: "admin", email: "dev@ghadirsports.sa", role: "admin", name: "مدير المطورين" }, 'dev-token-bypass');
         } else {
           setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
         }
@@ -1553,18 +1553,20 @@ function Shell({ title, subtitle, color, icon, tabs, activeTab, setActiveTab, on
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {syncStatus && (
-            <div style={{ 
-              display: "flex", 
-              alignItems: "center", 
-              gap: 6, 
-              fontSize: 11, 
-              fontWeight: 700, 
-              padding: "4px 10px", 
-              borderRadius: 12, 
-              background: syncStatus === "synced" ? "rgba(16,185,129,.1)" : syncStatus === "syncing" ? "rgba(59,130,246,.1)" : "rgba(239,68,68,.1)", 
-              color: syncStatus === "synced" ? "#10B981" : syncStatus === "syncing" ? "#3B82F6" : "#EF4444", 
-              border: `1px solid ${syncStatus === "synced" ? "rgba(16,185,129,.2)" : syncStatus === "syncing" ? "rgba(59,130,246,.2)" : "rgba(239,68,68,.2)"}` 
-            }}>
+            <div 
+              title={syncStatus === "error" ? "انقر لإعادة التحقق من المزامنة" : "حالة المزامنة مع الخادم"}
+              style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 6, 
+                fontSize: 11, 
+                fontWeight: 700, 
+                padding: "4px 10px", 
+                borderRadius: 12, 
+                background: syncStatus === "synced" ? "rgba(16,185,129,.1)" : syncStatus === "syncing" ? "rgba(59,130,246,.1)" : "rgba(239,68,68,.1)", 
+                color: syncStatus === "synced" ? "#10B981" : syncStatus === "syncing" ? "#3B82F6" : "#EF4444", 
+                border: `1px solid ${syncStatus === "synced" ? "rgba(16,185,129,.2)" : syncStatus === "syncing" ? "rgba(59,130,246,.2)" : "rgba(239,68,68,.2)"}` 
+              }}>
               <span style={{ 
                 width: 6, 
                 height: 6, 
@@ -1719,14 +1721,17 @@ export default function App() {
         throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
       }
       markLocalWrite();
+      setSyncStatus("synced");
     } catch (e) {
       console.error(`Sync error for ${table}:`, e);
       setSyncStatus("error");
+      setTimeout(() => {
+        setSyncStatus(s => s === "error" ? "synced" : s);
+      }, 4000);
     } finally {
       pendingSyncsRef.current--;
       if (pendingSyncsRef.current <= 0) {
         pendingSyncsRef.current = 0;
-        setSyncStatus(s => s === "error" ? "error" : "synced");
       }
     }
   };
@@ -1864,6 +1869,7 @@ export default function App() {
         if (data.messages) setMessages(data.messages);
         if (data.trainings) setTrainings(data.trainings);
         if (data.parents) setParents(data.parents.map(migrateItem));
+        setSyncStatus("synced");
       } catch (e) {
         console.error("API Fetch Error:", e);
       }
@@ -1873,7 +1879,7 @@ export default function App() {
 
     const interval = setInterval(fetchData, 6000);
     return () => clearInterval(interval);
-  }, [user, syncStatus]);
+  }, [user, token]);
 
   useEffect(() => {
     localStorage.setItem('ghadir_players', JSON.stringify(players));
@@ -2166,7 +2172,7 @@ export default function App() {
       )}
 
       {!user
-        ? <LoginPage onLogin={setUser} players={players} coaches={coaches} t={t} />
+        ? <LoginPage onLogin={(u, tok) => { setUser(u); if (tok) setToken(tok); }} players={players} coaches={coaches} t={t} />
         : user.role === "admin"
           ? <AdminPortal  user={user} onLogout={() => setUser(null)} {...shared} />
           : user.role === "coach"
