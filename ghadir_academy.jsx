@@ -1861,7 +1861,10 @@ export default function App() {
           setPlayers(repaired);
         }
         if (data.coaches) setCoaches(data.coaches.map(migrateItem));
-        if (data.groups) setGroups(data.groups);
+        if (data.groups) {
+          const cleanGroups = data.groups.filter(x => x.id !== "g-football" && x.name !== "كرة القدم" && x.id !== "g-swimming" && x.name !== "السباحة");
+          setGroups(cleanGroups);
+        }
         if (data.payments) setPayments(data.payments);
         if (data.attendance) setAttendance(data.attendance);
         if (data.coachesAttendance) setCoachesAttendance(data.coachesAttendance);
@@ -3037,11 +3040,15 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
             <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
               <Btn small onClick={() => { setForm({ ...g }); setModal("edit"); }} style={{ flex: 1 }}><AnimIcon type="edit" size={13} color="#fff" /> تعديل</Btn>
               <Btn small variant="danger" onClick={() => {
-                if (gPlayers.length > 0) {
-                  alert("لا يمكن حذف هذا النشاط الرياضي لوجود لاعبين مسجلين فيه. يرجى تعديل بيانات هؤلاء اللاعبين ونقلهم إلى لعبة/نشاط آخر أولاً.");
-                  return;
-                }
-                if (confirm("هل أنت متأكد من حذف هذا النشاط؟")) {
+                if (confirm("هل أنت متأكد من حذف هذا النشاط الرياضي؟")) {
+                  if (gPlayers.length > 0) {
+                    const fallbackGroup = (g.name.includes("سباح") || g.id.includes("swimming"))
+                      ? "g-swimming-boys"
+                      : (g.name.includes("قدم") || g.id.includes("football"))
+                        ? "g-football-juniors"
+                        : (groups.find(x => x.id !== g.id)?.id || "");
+                    setPlayers(ps => ps.map(p => p.groupId === g.id ? { ...p, groupId: fallbackGroup } : p));
+                  }
                   setGroups(gs => gs.filter(x => x.id !== g.id));
                   setSelGroup(null);
                 }

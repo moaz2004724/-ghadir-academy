@@ -109,7 +109,9 @@ const requireRole = (roles) => {
     if (!req.user) {
       return res.status(401).json({ error: 'غير مصرح بالدخول' });
     }
-    if (!roles.includes(req.user.role)) {
+    const userRole = String(req.user.role || '').toUpperCase();
+    const allowed = roles.map(r => String(r).toUpperCase());
+    if (!allowed.includes(userRole)) {
       return res.status(403).json({ error: 'ليس لديك الصلاحيات الكافية لتنفيذ هذا الإجراء' });
     }
     next();
@@ -1190,9 +1192,10 @@ const seedSportsAndTrainings = async () => {
           data: { groupId: targetGroupId }
         });
       }
-      // Also delete any trainings associated with old group before deleting group
+      await prisma.attendance.deleteMany({ where: { groupId: fg.id } });
+      await prisma.coach.updateMany({ where: { groupId: fg.id }, data: { groupId: null } });
       await prisma.training.deleteMany({ where: { groupId: fg.id } });
-      await prisma.group.delete({ where: { id: fg.id } });
+      await prisma.group.deleteMany({ where: { id: fg.id } });
     }
 
     const oldSwimmingGroups = await prisma.group.findMany({
@@ -1212,9 +1215,10 @@ const seedSportsAndTrainings = async () => {
           data: { groupId: 'g-swimming-boys' }
         });
       }
-      // Also delete any trainings associated with old group before deleting group
+      await prisma.attendance.deleteMany({ where: { groupId: sg.id } });
+      await prisma.coach.updateMany({ where: { groupId: sg.id }, data: { groupId: null } });
       await prisma.training.deleteMany({ where: { groupId: sg.id } });
-      await prisma.group.delete({ where: { id: sg.id } });
+      await prisma.group.deleteMany({ where: { id: sg.id } });
     }
 
     // 3. Ensure training schedules are seeded correctly
