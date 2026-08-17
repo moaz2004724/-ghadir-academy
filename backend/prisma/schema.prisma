@@ -73,6 +73,7 @@ model Player {
   bus           String?
   nationalId    String?
   freezeRanges  String?
+  trainingDays  String?
   
   // Stats
   score         Int      @default(80)
@@ -102,22 +103,26 @@ model Group {
   players   Player[]
   trainings Training[]
   attendance Attendance[]
-  price     Float    @default(350)
+  price8    Float    @default(250)
+  price12   Float    @default(350)
+  price16   Float    @default(450)
 }
 
 model Payment {
-  id         String   @id @default(cuid())
-  playerId   String
-  player     Player   @relation(fields: [playerId], references: [id])
-  playerName String?
-  coachId    String?
-  coachName  String?
-  type       String
-  month      String
-  amount     Float
-  discount   Float?   @default(0)
-  date       DateTime @default(now())
-  note       String?
+  id            String   @id @default(cuid())
+  playerId      String
+  player        Player   @relation(fields: [playerId], references: [id])
+  playerName    String?
+  coachId       String?
+  coachName     String?
+  type          String
+  month         String
+  amount        Float
+  discount      Float?   @default(0)
+  date          DateTime @default(now())
+  note          String?
+  packageName   String?
+  sessionsCount Int      @default(12)
 }
 
 model Attendance {

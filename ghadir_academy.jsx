@@ -277,20 +277,29 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
 
   const ARABIC_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
+  let playerDays = null;
+  try {
+    playerDays = player.trainingDays ? JSON.parse(player.trainingDays) : null;
+  } catch(e) {}
+
   const isGroupTrainingDay = (dateObj, dateStr) => {
-    // 1. Check if attendance was recorded for this group on this date
+    const dayName = ARABIC_DAYS[dateObj.getDay()];
+    if (playerDays && Array.isArray(playerDays)) {
+      if (!playerDays.includes(dayName)) {
+        return false;
+      }
+    }
+
     if (groupAttendance.some(a => compareDates(a.date, dateStr))) {
       return true;
     }
     
-    // 2. Check current training schedules
     for (const tr of groupTrainings) {
       if (tr.isRecurring === false || tr.isRecurring === undefined) {
         if (tr.date && compareDates(tr.date, dateStr)) {
           return true;
         }
       } else {
-        const dayName = ARABIC_DAYS[dateObj.getDay()];
         if (tr.days && tr.days.includes(dayName)) {
           return true;
         }
@@ -299,7 +308,6 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
     return false;
   };
 
-  // Sort sub payments chronologically
   const sortedSubPays = [...playerSubPays].sort((a, b) => {
     const da = toLocalDateStr(a.date);
     const db = toLocalDateStr(b.date);
@@ -313,8 +321,6 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
     const pay = sortedSubPays[c - 1];
     let startDateStr = toLocalDateStr(pay.date);
     
-    // Determine if there is a next cycle that starts after this one.
-    // If so, we limit this cycle's sessions to end before the next one starts.
     let limitDateStr = null;
     if (c < P) {
       const nextPayDate = toLocalDateStr(sortedSubPays[c].date);
@@ -325,7 +331,6 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
 
     const cycleDates = [];
     
-    // Parse freezeRanges
     let ranges = [];
     try {
       ranges = player.freezeRanges ? JSON.parse(player.freezeRanges) : [];
@@ -333,19 +338,16 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
       ranges = [];
     }
 
-    // Parse the start date string safely
     const parts = startDateStr.split("-");
     let current = new Date(parts[0], parts[1] - 1, parts[2]);
     current.setHours(0, 0, 0, 0);
 
-    // Determine target session count for this cycle:
-    // Expired subscriptions that finished on 12 prior to today stay at 12.
-    // Active subscriptions (running today or in future) and new renewals get 13 (12 + 1 free).
+    const baseSessions = pay.sessionsCount || 12;
     let tempCurrent = new Date(current);
     let temp12thDate = null;
     let tempCount = 0;
     let tempSafety = 0;
-    while (tempCount < 12 && tempSafety < 5000) {
+    while (tempCount < baseSessions && tempSafety < 5000) {
       tempSafety++;
       const dStr = getLocalDateString(tempCurrent);
       if (limitDateStr && dStr >= limitDateStr) break;
@@ -363,7 +365,7 @@ const getPlayerSubscriptionDetails = (player, trainings, attendance, payments) =
       tempCurrent.setDate(tempCurrent.getDate() + 1);
     }
 
-    const targetSessionCount = (c < P || (temp12thDate && temp12thDate < todayStr)) ? 12 : 13;
+    const targetSessionCount = (c < P || (temp12thDate && temp12thDate < todayStr)) ? baseSessions : (baseSessions === 12 ? 13 : baseSessions);
 
     let safety = 0;
     while (cycleDates.length < targetSessionCount && safety < 5000) {
@@ -2960,7 +2962,12 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
               <div style={{ fontWeight: 800, fontSize: 18, color: g.color, marginBottom: 4 }}>{g.name}</div>
               <div style={{ fontSize: 12, color: t.textDim }}>{gPlayers.length} لاعب مسجل</div>
             </div>
-            {[["المدرب المسؤول", coach?.name || "—"], ["قيمة الاشتراك", fmtMoney(g.price !== undefined ? g.price : 350)]].map(([k, v]) => (
+            {[
+              ["المدرب المسؤول", coach?.name || "—"],
+              ["باقة 8 حصص", fmtMoney(g.price8 !== undefined ? g.price8 : 250)],
+              ["باقة 12 حصة", fmtMoney(g.price12 !== undefined ? g.price12 : 350)],
+              ["باقة 16 حصة", fmtMoney(g.price16 !== undefined ? g.price16 : 450)]
+            ].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${t.border}`, fontSize: 12 }}>
                 <span style={{ color: t.textDim }}>{k}</span>
                 <span style={{ fontWeight: 600, color: t.text }}>{v}</span>
@@ -3061,7 +3068,11 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
                     <div style={{ fontSize: 20, fontWeight: 900, color: g.color, marginBottom: 4 }}>{g.name}</div>
-                    <div style={{ fontSize: 11, color: t.textDim }}>الاشتراك: <strong style={{ color: "#10B981" }}>{fmtMoney(g.price !== undefined ? g.price : 350)}</strong> / شهر</div>
+                    <div style={{ fontSize: 11, color: t.textDim }}>
+                      الباقات: 8ح: <strong style={{ color: "#10B981" }}>{fmtMoney(g.price8 !== undefined ? g.price8 : 250)}</strong> | 
+                      12ح: <strong style={{ color: "#10B981" }}>{fmtMoney(g.price12 !== undefined ? g.price12 : 350)}</strong> | 
+                      16ح: <strong style={{ color: "#10B981" }}>{fmtMoney(g.price16 !== undefined ? g.price16 : 450)}</strong>
+                    </div>
                   </div>
                   <div style={{ width: 46, height: 46, borderRadius: 14, background: `${g.color}14`, border: `1px solid ${g.color}30`, display: "grid", placeItems: "center", fontSize: 24 }}>
                     {getSportIcon(g.name)}
@@ -3456,7 +3467,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
                 )}
               </div>
             ))}
-            <Btn style={{ width: "100%", marginTop: 14 }} onClick={() => { setForm({ ...p, email: par?.email || "", password: par?.password || "" }); setModal("edit"); }}>
+            <Btn style={{ width: "100%", marginTop: 14 }} onClick={() => { setForm({ ...p, email: par?.email || "", password: par?.password || "", customDaysEnabled: !!p.trainingDays }); setModal("edit"); }}>
               <AnimIcon type="edit" size={14} color="#fff" /> تعديل
             </Btn>
             <button
@@ -3626,6 +3637,43 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="العمر" value={form.age} onChange={v => setForm(x => ({ ...x, age: +v }))} type="number" t={t}/></div>
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الطول (سم)" value={form.height} onChange={v => setForm(x => ({ ...x, height: +v }))} type="number" t={t}/></div>
               <div style={{ flex: "1 1 calc(50% - 7px)" }}><Input label="الوزن (كجم)" value={form.weight} onChange={v => setForm(x => ({ ...x, weight: +v }))} type="number" t={t}/></div>
+              <div style={{ flex: "1 1 100%", marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 11, color: t.textDim, fontWeight: 700, marginBottom: 8 }}>أيام التمرين</label>
+                <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.text, cursor: "pointer" }}>
+                    <input type="radio" name="daysTypeEdit" checked={!form.customDaysEnabled} 
+                      onChange={() => setForm(x => ({ ...x, customDaysEnabled: false, trainingDays: null }))} />
+                    حسب جدول اللعبة الافتراضي
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.text, cursor: "pointer" }}>
+                    <input type="radio" name="daysTypeEdit" checked={!!form.customDaysEnabled} 
+                      onChange={() => setForm(x => ({ ...x, customDaysEnabled: true, trainingDays: JSON.stringify(["الأحد", "الثلاثاء", "الخميس"]) }))} />
+                    أيام محددة (تخصيص)
+                  </label>
+                </div>
+                {!!form.customDaysEnabled && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10, background: t.bg, padding: 10, borderRadius: 8, border: `1px solid ${t.border}` }}>
+                    {["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"].map(day => {
+                      let currentDays = [];
+                      try {
+                        currentDays = form.trainingDays ? JSON.parse(form.trainingDays) : [];
+                      } catch(e) {}
+                      const checked = currentDays.includes(day);
+                      return (
+                        <label key={day} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.text, cursor: "pointer" }}>
+                          <input type="checkbox" checked={checked} onChange={e => {
+                            const nextDays = e.target.checked 
+                              ? [...currentDays, day] 
+                              : currentDays.filter(d => d !== day);
+                            setForm(x => ({ ...x, trainingDays: JSON.stringify(nextDays) }));
+                          }} />
+                          {day}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <div style={{ flex: "1 1 100%", display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <input type="checkbox" id="hasBusEdit" checked={!!form.bus} 
@@ -3709,7 +3757,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
             alert("الرجاء إضافة فريق (مجموعة) أولاً قبل إضافة اللاعبين.");
             return;
           }
-          setForm({ ...emptyP, groupId: groups[0].id }); 
+          setForm({ ...emptyP, groupId: groups[0].id, customDaysEnabled: false, trainingDays: null }); 
           setModal("add"); 
         }}>
           <AnimIcon type="plus" size={14} color="#fff" /> إضافة لاعب
@@ -3801,6 +3849,43 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
                 t={t}
               />
             </div>
+              <div style={{ flex: "1 1 100%", marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 11, color: t.textDim, fontWeight: 700, marginBottom: 8 }}>أيام التمرين</label>
+                <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.text, cursor: "pointer" }}>
+                    <input type="radio" name="daysTypeAdd" checked={!form.customDaysEnabled} 
+                      onChange={() => setForm(x => ({ ...x, customDaysEnabled: false, trainingDays: null }))} />
+                    حسب جدول اللعبة الافتراضي
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.text, cursor: "pointer" }}>
+                    <input type="radio" name="daysTypeAdd" checked={!!form.customDaysEnabled} 
+                      onChange={() => setForm(x => ({ ...x, customDaysEnabled: true, trainingDays: JSON.stringify(["الأحد", "الثلاثاء", "الخميس"]) }))} />
+                    أيام محددة (تخصيص)
+                  </label>
+                </div>
+                {!!form.customDaysEnabled && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10, background: t.bg, padding: 10, borderRadius: 8, border: `1px solid ${t.border}` }}>
+                    {["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"].map(day => {
+                      let currentDays = [];
+                      try {
+                        currentDays = form.trainingDays ? JSON.parse(form.trainingDays) : [];
+                      } catch(e) {}
+                      const checked = currentDays.includes(day);
+                      return (
+                        <label key={day} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.text, cursor: "pointer" }}>
+                          <input type="checkbox" checked={checked} onChange={e => {
+                            const nextDays = e.target.checked 
+                              ? [...currentDays, day] 
+                              : currentDays.filter(d => d !== day);
+                            setForm(x => ({ ...x, trainingDays: JSON.stringify(nextDays) }));
+                          }} />
+                          {day}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             <div style={{ flex: "1 1 100%", display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input type="checkbox" id="hasBusAdd" checked={!!form.bus} 
@@ -4285,7 +4370,7 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
   
   const MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"].map(m => `${m} 2026`);
   
-  const empty = { playerId: players[0]?.id || "", coachId: coaches[0]?.id || "none", types: ["subscription"], month: CUR_MONTH, note: "", date: getLocalDateString(new Date()), discount: 0 };
+  const empty = { playerId: players[0]?.id || "", coachId: coaches[0]?.id || "none", types: ["subscription"], month: CUR_MONTH, note: "", date: getLocalDateString(new Date()), discount: 0, sessionsCount: 12 };
   const [form, setForm] = useState(empty);
   const filtered = payments.filter(p => {
     const playerObj = players.find(pl => pl.id === p.playerId);
@@ -4321,9 +4406,23 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
         if (type === form.types[0]) itemDiscount = form.discount || 0;
       }
 
-      const amount = type === "subscription"
-        ? (playerGroup?.price !== undefined ? playerGroup.price : (prices.subscription || 350))
-        : (prices[type] || 0);
+      let amount = 350;
+      let packName = undefined;
+      let sessCount = 12;
+
+      if (type === "subscription") {
+        sessCount = form.sessionsCount || 12;
+        packName = `باقة ${sessCount} حصة`;
+        if (sessCount === 8) {
+          amount = playerGroup?.price8 !== undefined ? playerGroup.price8 : 250;
+        } else if (sessCount === 16) {
+          amount = playerGroup?.price16 !== undefined ? playerGroup.price16 : 450;
+        } else {
+          amount = playerGroup?.price12 !== undefined ? playerGroup.price12 : 350;
+        }
+      } else {
+        amount = prices[type] || 0;
+      }
 
       return {
         id: `pay${batchTimestamp}-${type}`,
@@ -4336,7 +4435,9 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
         discount: itemDiscount,
         month: form.month,
         date: form.date,
-        note: form.note
+        note: form.note,
+        packageName: packName,
+        sessionsCount: sessCount
       };
     });
 
@@ -4436,9 +4537,19 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
   const payPlayer = players.find(p => p.id === form.playerId);
   const payGroup = groups.find(g => g.id === payPlayer?.groupId);
   const totalAmount = form.types.reduce((sum, type) => {
-    const amt = type === "subscription"
-      ? (payGroup?.price !== undefined ? payGroup.price : (prices.subscription || 350))
-      : (prices[type] || 0);
+    let amt = 0;
+    if (type === "subscription") {
+      const sc = form.sessionsCount || 12;
+      if (sc === 8) {
+        amt = payGroup?.price8 !== undefined ? payGroup.price8 : 250;
+      } else if (sc === 16) {
+        amt = payGroup?.price16 !== undefined ? payGroup.price16 : 450;
+      } else {
+        amt = payGroup?.price12 !== undefined ? payGroup.price12 : (prices.subscription || 350);
+      }
+    } else {
+      amt = prices[type] || 0;
+    }
     return sum + amt;
   }, 0);
 
@@ -4608,7 +4719,10 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
                 const playerGroupObj = groups.find(g => g.id === playerObj?.groupId);
                 const getPriceForType = (type) => {
                   if (type === "subscription") {
-                    return playerGroupObj?.price !== undefined ? playerGroupObj.price : (prices.subscription || 350);
+                    const sc = form.sessionsCount || 12;
+                    if (sc === 8) return playerGroupObj?.price8 !== undefined ? playerGroupObj.price8 : 250;
+                    if (sc === 16) return playerGroupObj?.price16 !== undefined ? playerGroupObj.price16 : 450;
+                    return playerGroupObj?.price12 !== undefined ? playerGroupObj.price12 : (prices.subscription || 350);
                   }
                   return prices[type] || 0;
                 };
@@ -4622,6 +4736,23 @@ function AdminPayments({ payments, setPayments, players, coaches, parents, price
               })}
             </div>
           </div>
+
+          {form.types.includes("subscription") && (
+            <Input 
+              label="باقة الاشتراك (عدد الحصص)" 
+              value={form.sessionsCount || 12} 
+              onChange={v => {
+                const sc = parseInt(v);
+                setForm(f => ({ ...f, sessionsCount: sc }));
+              }} 
+              options={[
+                { v: 8, l: "باقة 8 حصص" },
+                { v: 12, l: "باقة 12 حصة (افتراضية)" },
+                { v: 16, l: "باقة 16 حصة" }
+              ]} 
+              t={t}
+            />
+          )}
 
           <Input label="الشهر" value={form.month} onChange={v => setForm(f => ({ ...f, month: v }))} options={MONTHS} t={t}/>
           <Input label="التاريخ" value={form.date} onChange={v => setForm(f => ({ ...f, date: v }))} type="date" t={t}/>
@@ -4680,7 +4811,9 @@ function AdminPrices({ prices, setPrices, t, groups, setGroups }) {
   const [form, setForm] = useState(() => {
     const initialForm = { ...prices };
     (groups || []).forEach(g => {
-      initialForm[`group_${g.id}`] = g.price !== undefined ? g.price : 350;
+      initialForm[`group_${g.id}_8`] = g.price8 !== undefined ? g.price8 : 250;
+      initialForm[`group_${g.id}_12`] = g.price12 !== undefined ? g.price12 : 350;
+      initialForm[`group_${g.id}_16`] = g.price16 !== undefined ? g.price16 : 450;
     });
     return initialForm;
   });
@@ -4757,8 +4890,10 @@ function AdminPrices({ prices, setPrices, t, groups, setGroups }) {
 
     if (groups && setGroups) {
       setGroups(prevGroups => prevGroups.map(g => {
-        const newPrice = form[`group_${g.id}`];
-        return newPrice !== undefined ? { ...g, price: parseFloat(newPrice) } : g;
+        const p8 = form[`group_${g.id}_8`] !== undefined ? parseFloat(form[`group_${g.id}_8`]) : 250;
+        const p12 = form[`group_${g.id}_12`] !== undefined ? parseFloat(form[`group_${g.id}_12`]) : 350;
+        const p16 = form[`group_${g.id}_16`] !== undefined ? parseFloat(form[`group_${g.id}_16`]) : 450;
+        return { ...g, price8: p8, price12: p12, price16: p16 };
       }));
     }
 
@@ -4792,19 +4927,39 @@ function AdminPrices({ prices, setPrices, t, groups, setGroups }) {
 
           {/* أسعار اشتراكات الألعاب الرياضية والأنشطة */}
           {(groups || []).map(g => (
-            <div key={g.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", borderBottom: `1px solid ${t.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div key={g.id} style={{ display: "flex", flexDirection: "column", padding: "16px 0", borderBottom: `1px solid ${t.border}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                 <span style={{ fontSize: 22 }}>{getSportIcon(g.name)}</span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{`اشتراك ${g.name}`}</div>
-                  <div style={{ fontSize: 11, color: t.textDim }}>السعر الحالي: {fmtMoney(g.price !== undefined ? g.price : 350)}</div>
-                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{g.name}</div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input type="number" value={form[`group_${g.id}`] !== undefined ? form[`group_${g.id}`] : 350} 
-                  onChange={e => setForm(f => ({ ...f, [`group_${g.id}`]: +e.target.value }))}
-                  style={{ width: 90, background: t.inputBg, border: `1px solid ${t.border2}`, borderRadius: 8, padding: "7px 10px", color: g.color || "#2563EB", fontSize: 14, fontWeight: 700, outline: "none", textAlign: "center", fontFamily: "'Cairo',sans-serif" }}/>
-                <span style={{ fontSize: 12, color: t.textDim }}>ر.س</span>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {/* باقة 8 حصص */}
+                <div style={{ flex: 1, minWidth: 100 }}>
+                  <div style={{ fontSize: 11, color: t.textDim, marginBottom: 4 }}>باقة 8 حصص</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <input type="number" value={form[`group_${g.id}_8`] !== undefined ? form[`group_${g.id}_8`] : 250} 
+                      onChange={e => setForm(f => ({ ...f, [`group_${g.id}_8`]: +e.target.value }))}
+                      style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.border2}`, borderRadius: 8, padding: "7px 10px", color: g.color || "#2563EB", fontSize: 13, fontWeight: 700, outline: "none", textAlign: "center", fontFamily: "'Cairo',sans-serif" }}/>
+                  </div>
+                </div>
+                {/* باقة 12 حصة */}
+                <div style={{ flex: 1, minWidth: 100 }}>
+                  <div style={{ fontSize: 11, color: t.textDim, marginBottom: 4 }}>باقة 12 حصة</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <input type="number" value={form[`group_${g.id}_12`] !== undefined ? form[`group_${g.id}_12`] : 350} 
+                      onChange={e => setForm(f => ({ ...f, [`group_${g.id}_12`]: +e.target.value }))}
+                      style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.border2}`, borderRadius: 8, padding: "7px 10px", color: g.color || "#2563EB", fontSize: 13, fontWeight: 700, outline: "none", textAlign: "center", fontFamily: "'Cairo',sans-serif" }}/>
+                  </div>
+                </div>
+                {/* باقة 16 حصة */}
+                <div style={{ flex: 1, minWidth: 100 }}>
+                  <div style={{ fontSize: 11, color: t.textDim, marginBottom: 4 }}>باقة 16 حصة</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <input type="number" value={form[`group_${g.id}_16`] !== undefined ? form[`group_${g.id}_16`] : 450} 
+                      onChange={e => setForm(f => ({ ...f, [`group_${g.id}_16`]: +e.target.value }))}
+                      style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.border2}`, borderRadius: 8, padding: "7px 10px", color: g.color || "#2563EB", fontSize: 13, fontWeight: 700, outline: "none", textAlign: "center", fontFamily: "'Cairo',sans-serif" }}/>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -5440,7 +5595,7 @@ function AdminAttendance({ groups, players, coaches, attendance, setAttendance, 
                   </span>
                 ) : subTab === "players" && subDetails.isExpired ? (
                   <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 800, background: "rgba(239,68,68,0.1)", padding: "6px 12px", borderRadius: 8 }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="alert" size={11} color="#F59E0B" /> منتهي</span> الاشتراك ({subDetails.attendedCount}/12)
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AnimIcon type="alert" size={11} color="#F59E0B" /> منتهي</span> الاشتراك ({subDetails.attendedCount}/{subDetails.cycleSessions.length})
                   </span>
                 ) : (
                   <div style={{ display: "flex", gap: 6 }}>

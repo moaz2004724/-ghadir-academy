@@ -453,6 +453,7 @@ app.post('/api/players', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
           bus: p.bus,
           nationalId: p.nationalId ? p.nationalId.trim() : null,
           freezeRanges: p.freezeRanges,
+          trainingDays: p.trainingDays,
           group: { connect: { id: p.groupId } },
           parent: { connect: { id: resolvedParentId } }
         }
@@ -470,6 +471,7 @@ app.post('/api/players', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
           bus: p.bus,
           nationalId: p.nationalId ? p.nationalId.trim() : null,
           freezeRanges: p.freezeRanges,
+          trainingDays: p.trainingDays,
           group: { connect: { id: p.groupId } },
           parent: { connect: { id: resolvedParentId } }
         }
@@ -485,8 +487,9 @@ app.post('/api/players', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
 
 app.post('/api/payments', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN', 'COACH']), async (req, res) => {
   try {
-    const { id, playerId, playerName, coachId, coachName, type, month, amount, date, note, discount } = req.body;
+    const { id, playerId, playerName, coachId, coachName, type, month, amount, date, note, discount, packageName, sessionsCount } = req.body;
     const resolvedDiscount = (discount !== undefined && discount !== null && !isNaN(discount)) ? parseFloat(discount) : 0;
+    const resolvedSessions = (sessionsCount !== undefined && sessionsCount !== null && !isNaN(sessionsCount)) ? parseInt(sessionsCount) : 12;
     const payment = await prisma.payment.upsert({
       where: { id: id || 'new' },
       update: { 
@@ -499,7 +502,9 @@ app.post('/api/payments', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN'
         amount: parseFloat(amount),
         discount: resolvedDiscount,
         date: new Date(date), 
-        note 
+        note,
+        packageName,
+        sessionsCount: resolvedSessions
       },
       create: { 
         id, 
@@ -512,7 +517,9 @@ app.post('/api/payments', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN'
         amount: parseFloat(amount),
         discount: resolvedDiscount,
         date: new Date(date), 
-        note 
+        note,
+        packageName,
+        sessionsCount: resolvedSessions
       }
     });
     res.json(payment);
@@ -656,11 +663,26 @@ app.post('/api/groups', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN'])
     }
 
     // 2. Upsert Group
-    const updateData = { name: g.name, color: g.color, coachId: coachId, price: g.price !== undefined ? parseFloat(g.price) : 350.0 };
+    const updateData = { 
+      name: g.name, 
+      color: g.color, 
+      coachId: coachId, 
+      price8: g.price8 !== undefined ? parseFloat(g.price8) : 250.0,
+      price12: g.price12 !== undefined ? parseFloat(g.price12) : 350.0,
+      price16: g.price16 !== undefined ? parseFloat(g.price16) : 450.0
+    };
     if (coachId) updateData.coach = { connect: { id: coachId } };
     else updateData.coach = { disconnect: true };
 
-    const createData = { id: g.id, name: g.name, color: g.color, coachId: coachId, price: g.price !== undefined ? parseFloat(g.price) : 350.0 };
+    const createData = { 
+      id: g.id, 
+      name: g.name, 
+      color: g.color, 
+      coachId: coachId, 
+      price8: g.price8 !== undefined ? parseFloat(g.price8) : 250.0,
+      price12: g.price12 !== undefined ? parseFloat(g.price12) : 350.0,
+      price16: g.price16 !== undefined ? parseFloat(g.price16) : 450.0
+    };
     if (coachId) createData.coach = { connect: { id: coachId } };
 
     const group = await prisma.group.upsert({
@@ -1063,9 +1085,123 @@ const fixUserRolesOnBoot = async () => {
   }
 };
 
+const seedSportsAndTrainings = async () => {
+  try {
+    console.log("Seeding and updating sports/groups and their training days...");
+
+    // 1. Group list to ensure
+    const targetGroups = [
+      { id: 'g-football-juniors', name: 'كرة القدم - الصغار (5-10 سنوات)', color: '#16A34A', price8: 250, price12: 350, price16: 450 },
+      { id: 'g-football-seniors', name: 'كرة القدم - الكبار (11-16 سنة)', color: '#15803D', price8: 250, price12: 350, price16: 450 },
+      { id: 'g-swimming-boys', name: 'سباحة - بنين', color: '#0284C7', price8: 300, price12: 400, price16: 500 },
+      { id: 'g-swimming-girls', name: 'سباحة - بنات', color: '#0369A1', price8: 300, price12: 400, price16: 500 },
+      { id: 'g-gymnastics', name: 'الجمباز', color: '#9333EA', price8: 250, price12: 350, price16: 450 },
+      { id: 'g-karate', name: 'الكاراتيه', color: '#DC2626', price8: 250, price12: 350, price16: 450 },
+      { id: 'g-basketball', name: 'كرة السلة', color: '#EA580C', price8: 250, price12: 350, price16: 450 },
+      { id: 'g-boxing', name: 'البوكسينج', color: '#4B5563', price8: 250, price12: 350, price16: 450 }
+    ];
+
+    // Ensure all target groups exist in database
+    for (const tg of targetGroups) {
+      await prisma.group.upsert({
+        where: { id: tg.id },
+        update: {
+          name: tg.name,
+          color: tg.color,
+          price8: tg.price8,
+          price12: tg.price12,
+          price16: tg.price16
+        },
+        create: {
+          id: tg.id,
+          name: tg.name,
+          color: tg.color,
+          price8: tg.price8,
+          price12: tg.price12,
+          price16: tg.price16
+        }
+      });
+    }
+
+    // 2. Migrate existing players from old groups if they exist
+    const oldFootballPlayers = await prisma.player.findMany({ where: { groupId: 'g-football' } });
+    for (const p of oldFootballPlayers) {
+      const targetGroupId = p.age <= 10 ? 'g-football-juniors' : 'g-football-seniors';
+      console.log(`Migrating football player ${p.name} (age ${p.age}) to ${targetGroupId}`);
+      await prisma.player.update({
+        where: { id: p.id },
+        data: { groupId: targetGroupId }
+      });
+    }
+
+    const oldSwimmingPlayers = await prisma.player.findMany({ where: { groupId: 'g-swimming' } });
+    for (const p of oldSwimmingPlayers) {
+      console.log(`Migrating swimming player ${p.name} to g-swimming-boys`);
+      await prisma.player.update({
+        where: { id: p.id },
+        data: { groupId: 'g-swimming-boys' }
+      });
+    }
+
+    // Clean up old groups if empty
+    const footballEmpty = (await prisma.player.count({ where: { groupId: 'g-football' } })) === 0;
+    if (footballEmpty) {
+      await prisma.group.deleteMany({ where: { id: 'g-football' } });
+    }
+    const swimmingEmpty = (await prisma.player.count({ where: { groupId: 'g-swimming' } })) === 0;
+    if (swimmingEmpty) {
+      await prisma.group.deleteMany({ where: { id: 'g-swimming' } });
+    }
+
+    // 3. Ensure training schedules are seeded correctly
+    const targetTrainings = [
+      { id: 't-football-juniors', groupId: 'g-football-juniors', days: ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"], time: "17:00", duration: 90, field: "ملعب A" },
+      { id: 't-football-seniors', groupId: 'g-football-seniors', days: ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"], time: "18:30", duration: 90, field: "ملعب A" },
+      { id: 't-swimming-boys', groupId: 'g-swimming-boys', days: ["السبت", "الاثنين", "الأربعاء"], time: "16:00", duration: 60, field: "المسبح" },
+      { id: 't-swimming-girls', groupId: 'g-swimming-girls', days: ["الأحد", "الثلاثاء", "الخميس"], time: "17:30", duration: 60, field: "المسبح" },
+      { id: 't-gymnastics', groupId: 'g-gymnastics', days: ["الأحد", "الاثنين", "الثلاثاء"], time: "16:00", duration: 60, field: "صالة الجمباز" },
+      { id: 't-karate', groupId: 'g-karate', days: ["الأحد", "الثلاثاء", "الخميس"], time: "18:00", duration: 60, field: "صالة الدفاع عن النفس" },
+      { id: 't-basketball', groupId: 'g-basketball', days: ["الأحد", "الثلاثاء", "الأربعاء"], time: "17:00", duration: 60, field: "الملعب الداخلي" },
+      { id: 't-boxing', groupId: 'g-boxing', days: ["السبت", "الاثنين", "الأربعاء"], time: "18:00", duration: 60, field: "صالة البوكسينج" }
+    ];
+
+    for (const tt of targetTrainings) {
+      await prisma.training.upsert({
+        where: { id: tt.id },
+        update: {
+          days: tt.days,
+          time: tt.time,
+          duration: tt.duration,
+          field: tt.field,
+          isRecurring: true,
+          type: 'training',
+          group: { connect: { id: tt.groupId } },
+          coach: { connect: { id: 'c-royal-coach' } }
+        },
+        create: {
+          id: tt.id,
+          days: tt.days,
+          time: tt.time,
+          duration: tt.duration,
+          field: tt.field,
+          isRecurring: true,
+          type: 'training',
+          group: { connect: { id: tt.groupId } },
+          coach: { connect: { id: 'c-royal-coach' } }
+        }
+      });
+    }
+
+    console.log("Sports and default training days successfully initialized.");
+  } catch (err) {
+    console.error("Seeding default sports and trainings failed:", err);
+  }
+};
+
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   await ensureAdminCredentialsOnBoot();
   await migratePasswordsOnBoot();
   await fixUserRolesOnBoot();
+  await seedSportsAndTrainings();
 });
