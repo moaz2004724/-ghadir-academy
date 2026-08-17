@@ -3125,7 +3125,7 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 18 }}>
-        {groups.map(g => {
+        {groups.filter(g => g && g.id !== "g-football" && g.name !== "كرة القدم" && g.id !== "g-swimming" && g.name !== "السباحة").map(g => {
           const coach = coaches.find(c => c.id === g.coachId);
           const gPlayers = players.filter(p => p.groupId === g.id);
           const avgScore = gPlayers.length ? Math.round(gPlayers.reduce((a, p) => a + p.score, 0) / gPlayers.length) : 0;
@@ -3142,8 +3142,10 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
                       16ح: <strong style={{ color: "#10B981" }}>{fmtMoney(g.price16 !== undefined ? g.price16 : 450)}</strong>
                     </div>
                   </div>
-                  <div style={{ width: 46, height: 46, borderRadius: 14, background: `${g.color}14`, border: `1px solid ${g.color}30`, display: "grid", placeItems: "center", fontSize: 24 }}>
-                    {getSportIcon(g.name)}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 14, background: `${g.color}14`, border: `1px solid ${g.color}30`, display: "grid", placeItems: "center", fontSize: 24 }}>
+                      {getSportIcon(g.name)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3168,10 +3170,31 @@ function AdminTeams({ groups, setGroups, coaches, players, t }) {
                 ))}
               </div>
 
-              {/* Players avatars */}
-              <div style={{ padding: "10px 20px 16px", display: "flex", alignItems: "center", gap: 6 }}>
-                {gPlayers.slice(0, 6).map(p => <Avatar key={p.id} name={p.name} size={26} color={g.color}/>)}
-                {gPlayers.length > 6 && <div style={{ width: 26, height: 26, borderRadius: "50%", background: t.border, display: "grid", placeItems: "center", fontSize: 10, color: t.textDim }}>+{gPlayers.length - 6}</div>}
+              {/* Players avatars & Quick actions */}
+              <div style={{ padding: "10px 20px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {gPlayers.slice(0, 5).map(p => <Avatar key={p.id} name={p.name} size={26} color={g.color}/>)}
+                  {gPlayers.length > 5 && <div style={{ width: 26, height: 26, borderRadius: "50%", background: t.border, display: "grid", placeItems: "center", fontSize: 10, color: t.textDim }}>+{gPlayers.length - 5}</div>}
+                </div>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`هل أنت متأكد من حذف نشاط ${g.name}؟`)) {
+                      if (gPlayers.length > 0) {
+                        const fallbackGroup = (g.name.includes("سباح") || g.id.includes("swimming"))
+                          ? "g-swimming-boys"
+                          : (g.name.includes("قدم") || g.id.includes("football"))
+                            ? "g-football-juniors"
+                            : (groups.find(x => x.id !== g.id)?.id || "");
+                        setPlayers(ps => ps.map(p => p.groupId === g.id ? { ...p, groupId: fallbackGroup } : p));
+                      }
+                      setGroups(gs => gs.filter(x => x.id !== g.id));
+                    }
+                  }}
+                  style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", color: "#EF4444", borderRadius: 8, padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontFamily: "'Cairo',sans-serif" }}
+                >
+                  <AnimIcon type="trash" size={12} color="#EF4444" /> حذف
+                </button>
               </div>
             </Card>
           );
