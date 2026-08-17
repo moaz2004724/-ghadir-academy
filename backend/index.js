@@ -1124,33 +1124,49 @@ const seedSportsAndTrainings = async () => {
     }
 
     // 2. Migrate existing players from old groups if they exist
-    const oldFootballPlayers = await prisma.player.findMany({ where: { groupId: 'g-football' } });
-    for (const p of oldFootballPlayers) {
-      const targetGroupId = p.age <= 10 ? 'g-football-juniors' : 'g-football-seniors';
-      console.log(`Migrating football player ${p.name} (age ${p.age}) to ${targetGroupId}`);
-      await prisma.player.update({
-        where: { id: p.id },
-        data: { groupId: targetGroupId }
-      });
+    const oldFootballGroups = await prisma.group.findMany({
+      where: {
+        OR: [
+          { id: 'g-football' },
+          { name: 'كرة القدم' }
+        ]
+      }
+    });
+    for (const fg of oldFootballGroups) {
+      const pList = await prisma.player.findMany({ where: { groupId: fg.id } });
+      for (const p of pList) {
+        const targetGroupId = (p.age && p.age <= 10) ? 'g-football-juniors' : 'g-football-seniors';
+        console.log(`Migrating football player ${p.name} (age ${p.age}) to ${targetGroupId}`);
+        await prisma.player.update({
+          where: { id: p.id },
+          data: { groupId: targetGroupId }
+        });
+      }
+      // Also delete any trainings associated with old group before deleting group
+      await prisma.training.deleteMany({ where: { groupId: fg.id } });
+      await prisma.group.delete({ where: { id: fg.id } });
     }
 
-    const oldSwimmingPlayers = await prisma.player.findMany({ where: { groupId: 'g-swimming' } });
-    for (const p of oldSwimmingPlayers) {
-      console.log(`Migrating swimming player ${p.name} to g-swimming-boys`);
-      await prisma.player.update({
-        where: { id: p.id },
-        data: { groupId: 'g-swimming-boys' }
-      });
-    }
-
-    // Clean up old groups if empty
-    const footballEmpty = (await prisma.player.count({ where: { groupId: 'g-football' } })) === 0;
-    if (footballEmpty) {
-      await prisma.group.deleteMany({ where: { id: 'g-football' } });
-    }
-    const swimmingEmpty = (await prisma.player.count({ where: { groupId: 'g-swimming' } })) === 0;
-    if (swimmingEmpty) {
-      await prisma.group.deleteMany({ where: { id: 'g-swimming' } });
+    const oldSwimmingGroups = await prisma.group.findMany({
+      where: {
+        OR: [
+          { id: 'g-swimming' },
+          { name: 'السباحة' }
+        ]
+      }
+    });
+    for (const sg of oldSwimmingGroups) {
+      const pList = await prisma.player.findMany({ where: { groupId: sg.id } });
+      for (const p of pList) {
+        console.log(`Migrating swimming player ${p.name} to g-swimming-boys`);
+        await prisma.player.update({
+          where: { id: p.id },
+          data: { groupId: 'g-swimming-boys' }
+        });
+      }
+      // Also delete any trainings associated with old group before deleting group
+      await prisma.training.deleteMany({ where: { groupId: sg.id } });
+      await prisma.group.delete({ where: { id: sg.id } });
     }
 
     // 3. Ensure training schedules are seeded correctly

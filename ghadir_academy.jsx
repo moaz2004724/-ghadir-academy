@@ -1615,20 +1615,44 @@ export default function App() {
   const [evals, setEvals] = useState(() => JSON.parse(localStorage.getItem('ghadir_evals') || '[]'));
   const [messages, setMessages] = useState(() => JSON.parse(localStorage.getItem('ghadir_messages') || '[]'));
   const [prices, setPrices] = useState(() => JSON.parse(localStorage.getItem('ghadir_prices') || JSON.stringify(PRICE_LIST)));
-  const [trainings, setTrainings] = useState(() => JSON.parse(localStorage.getItem('ghadir_trainings') || '[]'));
+  const DEFAULT_SPORTS = [
+    { id: "g-football-juniors", name: "كرة القدم - الصغار (5-10 سنوات)", color: "#16A34A", price8: 250, price12: 350, price16: 450 },
+    { id: "g-football-seniors", name: "كرة القدم - الكبار (11-16 سنة)", color: "#15803D", price8: 250, price12: 350, price16: 450 },
+    { id: "g-swimming-boys", name: "سباحة - بنين", color: "#0284C7", price8: 300, price12: 400, price16: 500 },
+    { id: "g-swimming-girls", name: "سباحة - بنات", color: "#0369A1", price8: 300, price12: 400, price16: 500 },
+    { id: "g-gymnastics", name: "الجمباز", color: "#9333EA", price8: 250, price12: 350, price16: 450 },
+    { id: "g-karate", name: "الكاراتيه", color: "#DC2626", price8: 250, price12: 350, price16: 450 },
+    { id: "g-basketball", name: "كرة السلة", color: "#EA580C", price8: 250, price12: 350, price16: 450 },
+    { id: "g-boxing", name: "البوكسينج", color: "#4B5563", price8: 250, price12: 350, price16: 450 }
+  ];
+
+  const DEFAULT_TRAININGS = [
+    { id: "t-football-juniors", groupId: "g-football-juniors", coachId: "c-royal-coach", days: ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"], time: "17:00", duration: 90, field: "ملعب A", isRecurring: true, type: "training", title: "تمرين كرة القدم - الصغار" },
+    { id: "t-football-seniors", groupId: "g-football-seniors", coachId: "c-royal-coach", days: ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"], time: "18:30", duration: 90, field: "ملعب A", isRecurring: true, type: "training", title: "تمرين كرة القدم - الكبار" },
+    { id: "t-swimming-boys", groupId: "g-swimming-boys", coachId: "c-royal-coach", days: ["السبت", "الاثنين", "الأربعاء"], time: "16:00", duration: 60, field: "المسبح", isRecurring: true, type: "training", title: "تمرين سباحة - بنين" },
+    { id: "t-swimming-girls", groupId: "g-swimming-girls", coachId: "c-royal-coach", days: ["الأحد", "الثلاثاء", "الخميس"], time: "17:30", duration: 60, field: "المسبح", isRecurring: true, type: "training", title: "تمرين سباحة - بنات" },
+    { id: "t-gymnastics", groupId: "g-gymnastics", coachId: "c-royal-coach", days: ["الأحد", "الاثنين", "الثلاثاء"], time: "16:00", duration: 60, field: "صالة الجمباز", isRecurring: true, type: "training", title: "تمرين الجمباز" },
+    { id: "t-karate", groupId: "g-karate", coachId: "c-royal-coach", days: ["الأحد", "الثلاثاء", "الخميس"], time: "18:00", duration: 60, field: "صالة الدفاع عن النفس", isRecurring: true, type: "training", title: "تمرين الكاراتيه" },
+    { id: "t-basketball", groupId: "g-basketball", coachId: "c-royal-coach", days: ["الأحد", "الثلاثاء", "الأربعاء"], time: "17:00", duration: 60, field: "الملعب الداخلي", isRecurring: true, type: "training", title: "تمرين كرة السلة" },
+    { id: "t-boxing", groupId: "g-boxing", coachId: "c-royal-coach", days: ["السبت", "الاثنين", "الأربعاء"], time: "18:00", duration: 60, field: "صالة البوكسينج", isRecurring: true, type: "training", title: "تمرين البوكسينج" }
+  ];
+
+  const [trainings, setTrainings] = useState(() => {
+    const local = JSON.parse(localStorage.getItem('ghadir_trainings') || '[]');
+    const next = [...local];
+    DEFAULT_TRAININGS.forEach(dt => {
+      if (!next.some(x => x.id === dt.id || x.groupId === dt.groupId)) {
+        next.push(dt);
+      }
+    });
+    return next;
+  });
   const [coachesAttendance, setCoachesAttendance] = useState(() => JSON.parse(localStorage.getItem('ghadir_coachesAttendance') || '[]'));
 
   const [groups, setGroups] = useState(() => {
     const local = JSON.parse(localStorage.getItem('ghadir_groups') || '[]');
-    const DEFAULT_SPORTS = [
-      { id: "g-swimming", name: "السباحة", color: "#0284C7", price: 350.0 },
-      { id: "g-football", name: "كرة القدم", color: "#16A34A", price: 350.0 },
-      { id: "g-basketball", name: "كرة السلة", color: "#EA580C", price: 350.0 },
-      { id: "g-karate", name: "الكاراتيه", color: "#DC2626", price: 350.0 },
-      { id: "g-gymnastics", name: "الجمباز", color: "#9333EA", price: 350.0 },
-      { id: "g-boxing", name: "البوكسينج", color: "#4B5563", price: 350.0 }
-    ];
-    const next = [...local];
+    const filteredLocal = local.filter(x => x.id !== "g-football" && x.name !== "كرة القدم" && x.id !== "g-swimming" && x.name !== "السباحة");
+    const next = [...filteredLocal];
     DEFAULT_SPORTS.forEach(ds => {
       if (!next.some(x => x.id === ds.id || x.name === ds.name)) {
         next.push(ds);
@@ -1735,8 +1759,20 @@ export default function App() {
     };
 
     setPlayers(prev => {
-      const next = prev.map(migrateItem);
-      return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
+      let changed = false;
+      const next = prev.map(p => {
+        const item = migrateItem(p);
+        if (item.groupId === "g-football" || item.groupId === "كرة القدم") {
+          changed = true;
+          return { ...item, groupId: (item.age && item.age <= 10) ? "g-football-juniors" : "g-football-seniors" };
+        }
+        if (item.groupId === "g-swimming" || item.groupId === "السباحة") {
+          changed = true;
+          return { ...item, groupId: "g-swimming-boys" };
+        }
+        return item;
+      });
+      return JSON.stringify(prev) !== JSON.stringify(next) || changed ? next : prev;
     });
     setCoaches(prev => {
       const next = prev.map(migrateItem);
@@ -1744,6 +1780,25 @@ export default function App() {
     });
     setParents(prev => {
       const next = prev.map(migrateItem);
+      return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
+    });
+    setGroups(prev => {
+      const filtered = prev.filter(x => x.id !== "g-football" && x.name !== "كرة القدم" && x.id !== "g-swimming" && x.name !== "السباحة");
+      const next = [...filtered];
+      DEFAULT_SPORTS.forEach(ds => {
+        if (!next.some(x => x.id === ds.id || x.name === ds.name)) {
+          next.push(ds);
+        }
+      });
+      return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
+    });
+    setTrainings(prev => {
+      const next = [...prev];
+      DEFAULT_TRAININGS.forEach(dt => {
+        if (!next.some(x => x.id === dt.id || x.groupId === dt.groupId)) {
+          next.push(dt);
+        }
+      });
       return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
     });
   }, []);
