@@ -722,16 +722,28 @@ app.post('/api/trainings', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN
   const t = req.body;
   try {
     let resolvedCoachId = t.coachId;
-    if (!resolvedCoachId) {
+    let coachExists = resolvedCoachId ? await prisma.coach.findUnique({ where: { id: resolvedCoachId } }) : null;
+    if (!coachExists) {
       const firstCoach = await prisma.coach.findFirst();
       resolvedCoachId = firstCoach?.id;
     }
     if (!resolvedCoachId) {
-      return res.status(400).json({ error: "لا يوجد مدرب مسجل في النظام لربط التمرين به. يرجى إضافة مدرب أولاً." });
+      const defaultUser = await prisma.user.upsert({
+        where: { email: 'coach@ghadirsports.sa' },
+        update: { role: 'COACH', name: 'مدرب الأكاديمية' },
+        create: { email: 'coach@ghadirsports.sa', password: bcrypt.hashSync('Ghadir@2026', 10), role: 'COACH', name: 'مدرب الأكاديمية' }
+      });
+      const newCoach = await prisma.coach.upsert({
+        where: { userId: defaultUser.id },
+        update: {},
+        create: { id: 'c1', userId: defaultUser.id, specialty: 'تدريب عام' }
+      });
+      resolvedCoachId = newCoach.id;
     }
 
     let resolvedGroupId = t.groupId;
-    if (!resolvedGroupId) {
+    let groupExists = resolvedGroupId ? await prisma.group.findUnique({ where: { id: resolvedGroupId } }) : null;
+    if (!groupExists) {
       const firstGroup = await prisma.group.findFirst();
       resolvedGroupId = firstGroup?.id;
     }
@@ -1181,6 +1193,20 @@ const seedSportsAndTrainings = async () => {
       { id: 't-boxing', groupId: 'g-boxing', days: ["السبت", "الاثنين", "الأربعاء"], time: "18:00", duration: 60, field: "صالة البوكسينج" }
     ];
 
+    let defaultCoach = await prisma.coach.findFirst();
+    if (!defaultCoach) {
+      const defaultUser = await prisma.user.upsert({
+        where: { email: 'coach@ghadirsports.sa' },
+        update: { role: 'COACH', name: 'الكابتن أحمد علي' },
+        create: { email: 'coach@ghadirsports.sa', password: bcrypt.hashSync('Ghadir@2026', 10), role: 'COACH', name: 'الكابتن أحمد علي' }
+      });
+      defaultCoach = await prisma.coach.upsert({
+        where: { userId: defaultUser.id },
+        update: {},
+        create: { id: 'c1', userId: defaultUser.id, specialty: 'تدريب عام' }
+      });
+    }
+
     for (const tt of targetTrainings) {
       await prisma.training.upsert({
         where: { id: tt.id },
@@ -1192,7 +1218,7 @@ const seedSportsAndTrainings = async () => {
           isRecurring: true,
           type: 'training',
           group: { connect: { id: tt.groupId } },
-          coach: { connect: { id: 'c-royal-coach' } }
+          coach: { connect: { id: defaultCoach.id } }
         },
         create: {
           id: tt.id,
@@ -1203,7 +1229,7 @@ const seedSportsAndTrainings = async () => {
           isRecurring: true,
           type: 'training',
           group: { connect: { id: tt.groupId } },
-          coach: { connect: { id: 'c-royal-coach' } }
+          coach: { connect: { id: defaultCoach.id } }
         }
       });
     }
