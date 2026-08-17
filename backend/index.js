@@ -437,6 +437,19 @@ app.post('/api/players', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
     }
 
     // Create or update the Player record
+    let validGroupId = p.groupId;
+    let groupExists = validGroupId ? await prisma.group.findUnique({ where: { id: validGroupId } }) : null;
+    if (!groupExists) {
+      if (validGroupId === 'g-football' || validGroupId === 'كرة القدم') {
+        validGroupId = (resolvedAge <= 10) ? 'g-football-juniors' : 'g-football-seniors';
+      } else if (validGroupId === 'g-swimming' || validGroupId === 'السباحة') {
+        validGroupId = 'g-swimming-boys';
+      } else {
+        const firstGroup = await prisma.group.findFirst();
+        validGroupId = firstGroup?.id;
+      }
+    }
+
     let player;
     const existing = p.id ? await prisma.player.findUnique({ where: { id: p.id } }) : null;
 
@@ -454,7 +467,7 @@ app.post('/api/players', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
           nationalId: p.nationalId ? p.nationalId.trim() : null,
           freezeRanges: p.freezeRanges,
           trainingDays: p.trainingDays,
-          group: { connect: { id: p.groupId } },
+          group: validGroupId ? { connect: { id: validGroupId } } : undefined,
           parent: { connect: { id: resolvedParentId } }
         }
       });
@@ -472,7 +485,7 @@ app.post('/api/players', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
           nationalId: p.nationalId ? p.nationalId.trim() : null,
           freezeRanges: p.freezeRanges,
           trainingDays: p.trainingDays,
-          group: { connect: { id: p.groupId } },
+          group: validGroupId ? { connect: { id: validGroupId } } : undefined,
           parent: { connect: { id: resolvedParentId } }
         }
       });
@@ -533,6 +546,19 @@ app.post('/api/payments', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN'
 app.post('/api/attendance', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN', 'COACH']), async (req, res) => {
   try {
     const a = req.body;
+    let validGroupId = a.groupId;
+    let groupExists = validGroupId ? await prisma.group.findUnique({ where: { id: validGroupId } }) : null;
+    if (!groupExists) {
+      const firstGroup = await prisma.group.findFirst();
+      validGroupId = firstGroup?.id;
+    }
+
+    let validCoachId = null;
+    if (a.coachId && a.coachId !== 'none') {
+      const coachExists = await prisma.coach.findUnique({ where: { id: a.coachId } });
+      if (coachExists) validCoachId = a.coachId;
+    }
+
     const att = await prisma.attendance.upsert({
       where: { id: a.id },
       update: { records: a.records },
@@ -540,8 +566,8 @@ app.post('/api/attendance', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMI
         id: a.id, 
         date: new Date(a.date), 
         records: a.records,
-        group: { connect: { id: a.groupId } },
-        coach: a.coachId ? { connect: { id: a.coachId } } : undefined
+        group: validGroupId ? { connect: { id: validGroupId } } : undefined,
+        coach: validCoachId ? { connect: { id: validCoachId } } : undefined
       }
     });
     res.json(att);
@@ -582,10 +608,16 @@ app.post('/api/coaches', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
     });
 
     // 2. Resolve Unique Constraint on groupId in Coach table
-    if (c.groupId) {
+    let validGroupId = null;
+    if (c.groupId && c.groupId !== 'none') {
+      const groupExists = await prisma.group.findUnique({ where: { id: c.groupId } });
+      if (groupExists) validGroupId = c.groupId;
+    }
+
+    if (validGroupId) {
       await prisma.coach.updateMany({
         where: { 
-          groupId: c.groupId,
+          groupId: validGroupId,
           NOT: { id: c.id || 'new' }
         },
         data: { groupId: null }
@@ -602,7 +634,7 @@ app.post('/api/coaches', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
         exp: c.exp ? parseInt(c.exp) : null,
         cert: c.cert,
         user: { connect: { id: user.id } },
-        group: c.groupId ? { connect: { id: c.groupId } } : { disconnect: true }
+        group: validGroupId ? { connect: { id: validGroupId } } : { disconnect: true }
       },
       create: { 
         id: c.id, 
@@ -612,7 +644,7 @@ app.post('/api/coaches', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
         exp: c.exp ? parseInt(c.exp) : null,
         cert: c.cert,
         user: { connect: { id: user.id } },
-        group: c.groupId ? { connect: { id: c.groupId } } : undefined
+        group: validGroupId ? { connect: { id: validGroupId } } : undefined
       }
     });
 
@@ -649,13 +681,17 @@ app.post('/api/coaches', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']
 app.post('/api/groups', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const g = req.body;
   try {
-    const coachId = g.coachId || null;
+    let validCoachId = null;
+    if (g.coachId && g.coachId !== 'none') {
+      const coachExists = await prisma.coach.findUnique({ where: { id: g.coachId } });
+      if (coachExists) validCoachId = g.coachId;
+    }
 
     // 1. Resolve Unique Constraint on coachId in Group table
-    if (coachId) {
+    if (validCoachId) {
       await prisma.group.updateMany({
         where: { 
-          coachId: coachId,
+          coachId: validCoachId,
           NOT: { id: g.id || 'new' }
         },
         data: { coachId: null }
@@ -666,24 +702,24 @@ app.post('/api/groups', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN'])
     const updateData = { 
       name: g.name, 
       color: g.color, 
-      coachId: coachId, 
+      coachId: validCoachId, 
       price8: g.price8 !== undefined ? parseFloat(g.price8) : 250.0,
       price12: g.price12 !== undefined ? parseFloat(g.price12) : 350.0,
       price16: g.price16 !== undefined ? parseFloat(g.price16) : 450.0
     };
-    if (coachId) updateData.coach = { connect: { id: coachId } };
+    if (validCoachId) updateData.coach = { connect: { id: validCoachId } };
     else updateData.coach = { disconnect: true };
 
     const createData = { 
       id: g.id, 
       name: g.name, 
       color: g.color, 
-      coachId: coachId, 
+      coachId: validCoachId, 
       price8: g.price8 !== undefined ? parseFloat(g.price8) : 250.0,
       price12: g.price12 !== undefined ? parseFloat(g.price12) : 350.0,
       price16: g.price16 !== undefined ? parseFloat(g.price16) : 450.0
     };
-    if (coachId) createData.coach = { connect: { id: coachId } };
+    if (validCoachId) createData.coach = { connect: { id: validCoachId } };
 
     const group = await prisma.group.upsert({
       where: { id: g.id || 'new' },
@@ -852,7 +888,7 @@ app.delete('/api/players/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_A
     await prisma.$transaction([
       prisma.payment.deleteMany({ where: { playerId: id } }),
       prisma.evaluation.deleteMany({ where: { playerId: id } }),
-      prisma.player.delete({ where: { id } })
+      prisma.player.deleteMany({ where: { id } })
     ]);
     res.json({ success: true });
   } catch (e) {
@@ -869,7 +905,7 @@ app.delete('/api/groups/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_AD
       prisma.attendance.deleteMany({ where: { groupId: id } }),
       prisma.coach.updateMany({ where: { groupId: id }, data: { groupId: null } }),
       prisma.player.deleteMany({ where: { groupId: id } }),
-      prisma.group.delete({ where: { id } })
+      prisma.group.deleteMany({ where: { id } })
     ]);
     res.json({ success: true });
   } catch (e) {
@@ -886,7 +922,7 @@ app.delete('/api/coaches/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_A
       prisma.evaluation.deleteMany({ where: { coachId: id } }),
       prisma.attendance.updateMany({ where: { coachId: id }, data: { coachId: null } }),
       prisma.group.updateMany({ where: { coachId: id }, data: { coachId: null } }),
-      prisma.coach.delete({ where: { id } })
+      prisma.coach.deleteMany({ where: { id } })
     ]);
     res.json({ success: true });
   } catch (e) {
@@ -898,7 +934,7 @@ app.delete('/api/coaches/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_A
 app.delete('/api/payments/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.payment.delete({ where: { id } });
+    await prisma.payment.deleteMany({ where: { id } });
     res.json({ success: true });
   } catch (e) {
     console.error("Error deleting payment:", e);
@@ -909,7 +945,7 @@ app.delete('/api/payments/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_
 app.delete('/api/trainings/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.training.delete({ where: { id } });
+    await prisma.training.deleteMany({ where: { id } });
     res.json({ success: true });
   } catch (e) {
     console.error("Error deleting training:", e);
@@ -920,7 +956,7 @@ app.delete('/api/trainings/:id', authenticateToken, requireRole(['ADMIN', 'SUPER
 app.delete('/api/attendance/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN', 'COACH']), async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.attendance.delete({ where: { id } });
+    await prisma.attendance.deleteMany({ where: { id } });
     res.json({ success: true });
   } catch (e) {
     console.error("Error deleting attendance:", e);
