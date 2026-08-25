@@ -1717,21 +1717,22 @@ export default function App() {
 
       const res = await fetch(url, { method, headers, body });
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+        // 404 on delete is fine - item was already removed
+        if (isDeleted && res.status === 404) {
+          // Item already gone - not an error
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          console.warn(`Sync warning for ${table}:`, errorData.error || res.status);
+        }
       }
       markLocalWrite();
-      setSyncStatus("synced");
     } catch (e) {
-      console.error(`Sync error for ${table}:`, e);
-      setSyncStatus("error");
-      setTimeout(() => {
-        setSyncStatus(s => s === "error" ? "synced" : s);
-      }, 4000);
+      console.warn(`Sync warning for ${table}:`, e.message);
     } finally {
       pendingSyncsRef.current--;
       if (pendingSyncsRef.current <= 0) {
         pendingSyncsRef.current = 0;
+        setSyncStatus("synced");
       }
     }
   };
@@ -2123,24 +2124,27 @@ export default function App() {
   };
 
   useEffect(() => {
-    const DEFAULT_SPORTS = [
-      { id: "g-swimming", name: "السباحة", color: "#0284C7", price: 350.0 },
-      { id: "g-football", name: "كرة القدم", color: "#16A34A", price: 350.0 },
-      { id: "g-basketball", name: "كرة السلة", color: "#EA580C", price: 350.0 },
-      { id: "g-karate", name: "الكاراتيه", color: "#DC2626", price: 350.0 },
-      { id: "g-gymnastics", name: "الجمباز", color: "#9333EA", price: 350.0 },
-      { id: "g-boxing", name: "البوكسينج", color: "#4B5563", price: 350.0 }
+    const REQUIRED_SPORTS = [
+      { id: "g-football-juniors", name: "كرة القدم - الصغار (5-10 سنوات)", color: "#16A34A", price8: 250, price12: 350, price16: 450 },
+      { id: "g-football-seniors", name: "كرة القدم - الكبار (11-16 سنة)", color: "#15803D", price8: 250, price12: 350, price16: 450 },
+      { id: "g-swimming-boys", name: "سباحة - بنين", color: "#0284C7", price8: 300, price12: 400, price16: 500 },
+      { id: "g-swimming-girls", name: "سباحة - بنات", color: "#0369A1", price8: 300, price12: 400, price16: 500 },
+      { id: "g-gymnastics", name: "الجمباز", color: "#9333EA", price8: 250, price12: 350, price16: 450 },
+      { id: "g-karate", name: "الكاراتيه", color: "#DC2626", price8: 250, price12: 350, price16: 450 },
+      { id: "g-basketball", name: "كرة السلة", color: "#EA580C", price8: 250, price12: 350, price16: 450 },
+      { id: "g-boxing", name: "البوكسينج", color: "#4B5563", price8: 250, price12: 350, price16: 450 }
     ];
-    const isMissingAny = DEFAULT_SPORTS.some(ds => !groups.some(g => g.id === ds.id || g.name === ds.name));
+    const isMissingAny = REQUIRED_SPORTS.some(ds => !groups.some(g => g.id === ds.id || g.name === ds.name));
     if (isMissingAny) {
-      shared.setGroups(prev => {
-        const next = [...prev];
-        DEFAULT_SPORTS.forEach(ds => {
+      setGroups(prev => {
+        const cleaned = prev.filter(x => x.id !== "g-football" && x.name !== "كرة القدم" && x.id !== "g-swimming" && x.name !== "السباحة");
+        const next = [...cleaned];
+        REQUIRED_SPORTS.forEach(ds => {
           if (!next.some(x => x.id === ds.id || x.name === ds.name)) {
             next.push(ds);
           }
         });
-        return next;
+        return JSON.stringify(prev) !== JSON.stringify(next) ? next : prev;
       });
     }
   }, [groups.length]);
@@ -3695,7 +3699,7 @@ function AdminPlayers({ players, setPlayers, groups, parents, evals, coaches, t,
                       
                       return (
                         <div key={idx} style={{ background: bgColor, border: `1px solid ${borderCol}`, padding: "10px 6px", borderRadius: 14, textAlign: "center", display: "flex", flexDirection: "column", gap: 4, alignItems: "center", boxShadow: "0 2px 6px rgba(0,0,0,0.01)" }}>
-                          <div style={{ fontSize: 10, color: idx === 12 ? "#10B981" : t.textFaint, fontWeight: idx === 12 ? 800 : 700 }}>{idx === 12 ? "حصة إضافية مجانية" : `حصة ${idx + 1}`}</div>
+                          <div style={{ fontSize: 10, color: t.textFaint, fontWeight: 700 }}>{`حصة ${idx + 1}`}</div>
                           <div style={{ fontSize: 14 }}>{icon}</div>
                           <div style={{ fontSize: 9, fontWeight: 800, color: textColor }}>{s.status === "مجمد" ? "مجمد" : formatArabicDate(s.date)}</div>
                         </div>
@@ -6291,7 +6295,7 @@ function CoachPlayers({ myPlayers, group, evals, t, trainings, attendance, payme
                       
                       return (
                         <div key={idx} style={{ background: bgColor, border: `1px solid ${borderCol}`, padding: "10px 6px", borderRadius: 14, textAlign: "center", display: "flex", flexDirection: "column", gap: 4, alignItems: "center", boxShadow: "0 2px 6px rgba(0,0,0,0.01)" }}>
-                          <div style={{ fontSize: 10, color: idx === 12 ? "#10B981" : t.textFaint, fontWeight: idx === 12 ? 800 : 700 }}>{idx === 12 ? "حصة إضافية مجانية" : `حصة ${idx + 1}`}</div>
+                          <div style={{ fontSize: 10, color: t.textFaint, fontWeight: 700 }}>{`حصة ${idx + 1}`}</div>
                           <div style={{ fontSize: 14 }}>{icon}</div>
                           <div style={{ fontSize: 9, fontWeight: 800, color: textColor }}>{s.status === "مجمد" ? "مجمد" : formatArabicDate(s.date)}</div>
                         </div>
@@ -6931,7 +6935,7 @@ function ParentOverview({ child, childGroup, childCoach, childPays, childEvals, 
                       gap: 4, 
                       alignItems: "center"
                     }}>
-                      <div style={{ fontSize: 10, color: idx === 12 ? "#10B981" : t.textFaint, fontWeight: idx === 12 ? 800 : 700 }}>{idx === 12 ? "حصة إضافية مجانية" : `حصة ${idx + 1}`}</div>
+                      <div style={{ fontSize: 10, color: t.textFaint, fontWeight: 700 }}>{`حصة ${idx + 1}`}</div>
                       <div style={{ fontSize: 15 }}>{statusIcon}</div>
                       <div style={{ fontSize: 9, fontWeight: 800, color: textColor }}>{s.status === "مجمد" ? "مجمد" : formatArabicDate(s.date)}</div>
                     </div>
