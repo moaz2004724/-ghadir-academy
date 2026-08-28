@@ -946,13 +946,18 @@ app.delete('/api/groups/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_AD
 app.delete('/api/coaches/:id', authenticateToken, requireRole(['ADMIN', 'SUPER_ADMIN']), async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.$transaction([
+    const coach = await prisma.coach.findUnique({ where: { id } });
+    const ops = [
       prisma.training.deleteMany({ where: { coachId: id } }),
       prisma.evaluation.deleteMany({ where: { coachId: id } }),
       prisma.attendance.updateMany({ where: { coachId: id }, data: { coachId: null } }),
       prisma.group.updateMany({ where: { coachId: id }, data: { coachId: null } }),
       prisma.coach.deleteMany({ where: { id } })
-    ]);
+    ];
+    if (coach?.userId) {
+      ops.push(prisma.user.deleteMany({ where: { id: coach.userId } }));
+    }
+    await prisma.$transaction(ops);
     res.json({ success: true });
   } catch (e) {
     console.error("Error deleting coach:", e);
